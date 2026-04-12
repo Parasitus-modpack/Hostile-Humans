@@ -22,7 +22,7 @@ public abstract class WalkNodeMix extends NodeEvaluator {
     @Inject(method = "getBlockPathTypeRaw", at = @At(value = "HEAD"), cancellable = true)
     private static void injected3(BlockGetter p_77644_, BlockPos p_77645_, CallbackInfoReturnable<BlockPathTypes> cir) {
         BlockState blockstate = p_77644_.getBlockState(p_77645_);
-        BlockPathTypes type = blockstate.getBlockPathType(p_77644_, p_77645_);
+        BlockPathTypes type = blockstate.getBlockPathType(p_77644_, p_77645_, null);
         if (type != null) return;
         if (blockstate.getBlock() instanceof FenceGateBlock) {
             cir.setReturnValue(BlockPathTypes.DOOR_IRON_CLOSED);

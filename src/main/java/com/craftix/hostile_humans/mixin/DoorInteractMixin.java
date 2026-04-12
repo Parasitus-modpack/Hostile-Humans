@@ -11,9 +11,9 @@ import net.minecraft.world.level.block.ButtonBlock;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.tags.BlockTags;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -33,7 +33,7 @@ public abstract class DoorInteractMixin {
 
     @Unique
     private static boolean isMetalDoor(BlockState p_52818_) {
-        return p_52818_.getBlock() instanceof DoorBlock && !(p_52818_.getMaterial() == Material.WOOD || p_52818_.getMaterial() == Material.NETHER_WOOD);
+        return p_52818_.getBlock() instanceof DoorBlock && p_52818_.is(BlockTags.DOORS) && !p_52818_.is(BlockTags.WOODEN_DOORS);
     }
 
     @Unique

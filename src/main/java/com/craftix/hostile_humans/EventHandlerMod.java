@@ -1,12 +1,14 @@
 package com.craftix.hostile_humans;
 
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackSource;
 import net.minecraftforge.event.AddPackFindersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.resource.PathResourcePack;
+import net.minecraftforge.resource.PathPackResources;
 
 import java.nio.file.Path;
 
@@ -17,6 +19,10 @@ public class EventHandlerMod {
 
     @SubscribeEvent
     public static void addPacks(AddPackFindersEvent event) {
+        if (event.getPackType() != PackType.SERVER_DATA) {
+            return;
+        }
+
     	boolean quark = ModList.get().isLoaded("quark");
     	boolean mctb = ModList.get().isLoaded("mctb");
     	boolean farmersdelight = ModList.get().isLoaded("farmersdelight");
@@ -39,11 +45,17 @@ public class EventHandlerMod {
 
     //https://github.com/MinecraftModDevelopmentMods/Extra-Golems/blob/master-1.19-2/src/main/java/com/mcmoddev/golems/integration/AddonLoader.java
     private static void registerAddon(final AddPackFindersEvent event, final String packName) {
-        event.addRepositorySource((packConsumer, constructor) -> {
-            Pack pack = Pack.create(MOD_ID + ":" + packName, true, () -> {
-                Path path = ModList.get().getModFileById(MOD_ID).getFile().findResource("/datapacks/" + packName);
-                return new PathResourcePack(packName, path);
-            }, constructor, Pack.Position.TOP, PackSource.DEFAULT);
+        event.addRepositorySource(packConsumer -> {
+            Path path = ModList.get().getModFileById(MOD_ID).getFile().findResource("datapacks/" + packName);
+            Pack pack = Pack.readMetaAndCreate(
+                    MOD_ID + ":" + packName,
+                    Component.literal(packName),
+                    true,
+                    id -> new PathPackResources(id, true, path),
+                    PackType.SERVER_DATA,
+                    Pack.Position.TOP,
+                    PackSource.DEFAULT
+            );
 
             if (pack != null) {
                 packConsumer.accept(pack);

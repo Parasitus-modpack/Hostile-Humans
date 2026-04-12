@@ -34,8 +34,8 @@ public class LookForBedGoal extends Goal {
 	 */
 	public boolean canUse() {
 		if (this.mob.getTarget() != null) return false;
-		if (this.mob.isSleeping() && this.mob.level.isNight()) return true;
-		if (!this.mob.level.isNight() || !((Human)this.mob).isSleepingThisNight()) {
+		if (this.mob.isSleeping() && this.mob.level().isNight()) return true;
+		if (!this.mob.level().isNight() || !((Human)this.mob).isSleepingThisNight()) {
 			this.pos = UNREACHABLE;
 			return false;
 		}
@@ -45,9 +45,9 @@ public class LookForBedGoal extends Goal {
 				for (int y = -5; y < 5; y++)
 					for (int z = -20; z < 20; z++) {
 						BlockPos bedPos = this.mob.blockPosition().offset(x, y, z);
-						BlockState isBed = this.mob.level.getBlockState(bedPos);
+						BlockState isBed = this.mob.level().getBlockState(bedPos);
 						//System.out.println("BED?"+bedPos);
-						if (isBed.isBed(this.mob.level, bedPos, mob) && !isBed.getValue(BedBlock.OCCUPIED)) {
+						if (isBed.isBed(this.mob.level(), bedPos, mob) && !isBed.getValue(BedBlock.OCCUPIED)) {
 							if (isBed.hasProperty(BedBlock.PART) && isBed.getValue(BedBlock.PART) == BedPart.FOOT) {
 								BlockPos blockpos = bedPos.relative(getNeighbourDirection(isBed.getValue(BedBlock.PART), isBed.getValue(BedBlock.FACING)));
 								this.pos = blockpos;
@@ -98,13 +98,13 @@ public class LookForBedGoal extends Goal {
 	 * Keep ticking a continuous task that has already been started
 	 */
 	public void tick() {
-		if (!this.mob.level.getBlockState(this.pos).hasProperty(BedBlock.OCCUPIED) || this.mob.level.getBlockState(this.pos).getValue(BedBlock.OCCUPIED)) {
+		if (!this.mob.level().getBlockState(this.pos).hasProperty(BedBlock.OCCUPIED) || this.mob.level().getBlockState(this.pos).getValue(BedBlock.OCCUPIED)) {
 			this.pos = UNREACHABLE;
 			return;
 		}
 		if (this.mob.blockPosition().distSqr(this.pos) < 5D) {
 			this.mob.getNavigation().stop();
-			if (!this.mob.isSleeping() && !this.mob.level.getBlockState(this.pos).getValue(BedBlock.OCCUPIED))
+			if (!this.mob.isSleeping() && !this.mob.level().getBlockState(this.pos).getValue(BedBlock.OCCUPIED))
 				this.mob.startSleeping(pos);
 		} else {
 			this.mob.getNavigation().moveTo(this.pos.getX(), this.pos.getY(), this.pos.getZ(), this.speedModifier);

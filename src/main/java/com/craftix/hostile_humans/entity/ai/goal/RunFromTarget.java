@@ -104,7 +104,7 @@ public class RunFromTarget extends Goal {
             return false;
         }
 
-        if (!human.isOnGround()) {
+        if (!human.onGround()) {
             jump = true;
         } else if (jump) {
             jump = false;

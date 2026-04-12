@@ -37,7 +37,7 @@ public class HumanEntityWalkControl extends MoveControl {
             return;
         }
 
-        if (mob.isOnGround() && skipTicks == 0) {
+        if (mob.onGround() && skipTicks == 0) {
             skipTicks = -1;
             mob.getNavigation().timeLastRecompute = 0;
             mob.getNavigation().recomputePath();
@@ -86,12 +86,12 @@ public class HumanEntityWalkControl extends MoveControl {
             }
 
             f9 = (float) (Mth.atan2(d1, d0) * 57.2957763671875) - 90.0F;
-            if (!human.isFleeing || human.isOnGround())
+            if (!human.isFleeing || human.onGround())
                 this.mob.setYRot(this.rotlerp(this.mob.getYRot(), f9, 90.0F));
             this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
             BlockPos blockpos = this.mob.blockPosition();
-            BlockState blockstate = this.mob.level.getBlockState(blockpos);
-            VoxelShape voxelshape = blockstate.getCollisionShape(this.mob.level, blockpos);
+            BlockState blockstate = this.mob.level().getBlockState(blockpos);
+            VoxelShape voxelshape = blockstate.getCollisionShape(this.mob.level(), blockpos);
             if (d2 > (double) this.mob.getStepHeight() && d0 * d0 + d1 * d1 < (double) Math.max(1.0F, this.mob.getBbWidth()) || !voxelshape.isEmpty() && this.mob.getY() < voxelshape.max(Direction.Axis.Y) + (double) blockpos.getY() && !blockstate.is(BlockTags.DOORS) && !blockstate.is(BlockTags.FENCES)) {
                 this.mob.getJumpControl().jump();
                 this.operation = MoveControl.Operation.JUMPING;
@@ -100,7 +100,7 @@ public class HumanEntityWalkControl extends MoveControl {
             if (Config.runJump.get()) {
                 if (human.onPlayerJumpCoolDown == 0) {
                     if (human.isFleeing && human.getRandom().nextFloat() < 0.1 && human.toAvoid != null) {
-                        if (mob.isOnGround()) {
+                        if (mob.onGround()) {
                             this.mob.getJumpControl().jump();
                             this.operation = MoveControl.Operation.JUMPING;
 
@@ -109,7 +109,7 @@ public class HumanEntityWalkControl extends MoveControl {
                             //   mob.getNavigation().recomputePath();
                         }
                     } else if (!human.isFleeing && human.getTarget() != null && mob.distanceTo(human.getTarget()) >= 5 && (isLookingAtTarget(mob, human.getTarget()))) {
-                        if (mob.isOnGround()) {
+                        if (mob.onGround()) {
                             // no jumping to player if holding ranged weapon
                             if (!HumanUtil.isRangedWeapon(human.getMainHandItem()) && !HumanUtil.isTrident(human.getMainHandItem())) {
                                 this.mob.getJumpControl().jump();
@@ -128,13 +128,13 @@ public class HumanEntityWalkControl extends MoveControl {
 
             // simulate crit
             if (Config.attackJump.get()) {
-                if (human.getRandom().nextFloat() < 0.1f && human.isOnGround() && human.getTarget() != null && human.getTarget().distanceTo(human) < 2 && HumanUtil.isMeleeWeapon(human.getMainHandItem())) {
+                if (human.getRandom().nextFloat() < 0.1f && human.onGround() && human.getTarget() != null && human.getTarget().distanceTo(human) < 2 && HumanUtil.isMeleeWeapon(human.getMainHandItem())) {
                     this.mob.getJumpControl().jump();
                 }
             }
         } else if (this.operation == MoveControl.Operation.JUMPING) {
             this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
-            if (this.mob.isOnGround()) {
+            if (this.mob.onGround()) {
                 this.operation = MoveControl.Operation.WAIT;
             }
         } else {

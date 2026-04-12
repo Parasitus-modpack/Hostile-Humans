@@ -4,6 +4,7 @@ import com.craftix.hostile_humans.Config;
 import com.craftix.hostile_humans.HumanUtil;
 import com.craftix.hostile_humans.compat.DungeonMobs;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -31,8 +32,8 @@ public class SpawnerEntity extends Mob {
 
     @Override
     public void tick() {
-        if (!level.isClientSide) {
-            spawn((ServerLevel) level);
+        if (!level().isClientSide) {
+            spawn((ServerLevel) level());
             discard();
         }
     }
@@ -58,10 +59,10 @@ public class SpawnerEntity extends Mob {
                 if (pos != null) {
                     if (isPillagers && currentTeam) {
                         if (random.nextBoolean())
-                            spawnedEntities.add((LivingEntity) getRandomPillager().spawn(level, null, null, null, pos, MobSpawnType.EVENT, false, false));
-                        spawnedEntities.add((LivingEntity) getRandomPillager().spawn(level, null, null, null, pos, MobSpawnType.EVENT, false, false));
+                            spawnedEntities.add((LivingEntity) getRandomPillager().spawn(level, (CompoundTag) null, null, pos, MobSpawnType.EVENT, false, false));
+                        spawnedEntities.add((LivingEntity) getRandomPillager().spawn(level, (CompoundTag) null, null, pos, MobSpawnType.EVENT, false, false));
                     } else {
-                        var newHuman = (random.nextFloat() < 0.05 ? ModEntityType.HUMAN2.get() : ModEntityType.HUMAN1.get()).spawn(level, null, null, null, pos, MobSpawnType.EVENT, false, false);
+                        var newHuman = (random.nextFloat() < 0.05 ? ModEntityType.HUMAN2.get() : ModEntityType.HUMAN1.get()).spawn(level, (CompoundTag) null, null, pos, MobSpawnType.EVENT, false, false);
                         spawnedEntities.add(newHuman);
 
                         if (newHuman != null) {

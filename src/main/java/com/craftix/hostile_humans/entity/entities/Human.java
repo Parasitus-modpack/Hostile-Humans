@@ -14,6 +14,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
@@ -151,7 +152,15 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
 
     public static AttributeSupplier.Builder createAttributes() {
-        return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.3F).add(Attributes.MAX_HEALTH, 20.0D).add(Attributes.ATTACK_DAMAGE, 1.0D).add(ForgeMod.REACH_DISTANCE.get(), 3).add(Attributes.FOLLOW_RANGE, 40);
+        return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.3F).add(Attributes.MAX_HEALTH, 20.0D).add(Attributes.ATTACK_DAMAGE, 1.0D).add(ForgeMod.ENTITY_REACH.get(), 3).add(Attributes.FOLLOW_RANGE, 40);
+    }
+
+    public void applySpawnedWeaponEnchantments(RandomSource random, float enchantChance) {
+        this.enchantSpawnedWeapon(random, enchantChance);
+    }
+
+    public void applySpawnedArmorEnchantments(RandomSource random, float enchantChance, EquipmentSlot equipmentSlot) {
+        this.enchantSpawnedArmor(random, enchantChance, equipmentSlot);
     }
 
     protected PathNavigation createNavigation(Level p_33802_) {
@@ -240,7 +249,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
 
     public void setCombatTask() {
-        if (!level.isClientSide) {
+        if (!level().isClientSide) {
 
             goalSelector.removeGoal(bowAttackGoal);
             goalSelector.removeGoal(meleeAttackGoal);
@@ -287,7 +296,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         if (this.random.nextFloat() < chance) {
             this.shieldCoolDown = 100;
             this.stopUsingItem();
-            this.level.broadcastEntityEvent(this, (byte) 30);
+            this.level().broadcastEntityEvent(this, (byte) 30);
         }
     }
 
@@ -310,7 +319,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     @Override
     public void setItemSlot(EquipmentSlot slotIn, ItemStack stack) {
         super.setItemSlot(slotIn, stack);
-        if (!this.level.isClientSide && !stack.isEmpty()) {
+        if (!this.level().isClientSide && !stack.isEmpty()) {
             this.setCombatTask();
         }
     }
@@ -337,7 +346,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
                         this.setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
                     }
                     this.useItem = ItemStack.EMPTY;
-                    this.playSound(SoundEvents.SHIELD_BREAK, 0.8F, 0.8F + this.level.random.nextFloat() * 0.4F);
+                    this.playSound(SoundEvents.SHIELD_BREAK, 0.8F, 0.8F + this.level().random.nextFloat() * 0.4F);
                 }
             }
         }
@@ -449,8 +458,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     @Override
     protected void completeUsingItem() {
     	InteractionHand hand = this.getUsedItemHand();
-    	boolean wasContainer = this.getItemInHand(this.getUsedItemHand()).hasContainerItem();
     	Item item = this.getItemInHand(this.getUsedItemHand()).getItem();
+    	boolean hasCraftingRemainingItem = item.hasCraftingRemainingItem();
 //          System.out.println("release "+hand+" "+this.useItem+" "+this.isUsingItem()+" "+this.getItemInHand(this.getUsedItemHand()));
         if (isFood(useItem)) {
         	if (useItem.getFoodProperties(this) != null) {
@@ -464,8 +473,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         }
         super.completeUsingItem();
         //Fix for potion not clearing from the hand
-        if (!this.level.isClientSide && wasContainer && this.getItemInHand(this.getUsedItemHand()).getItem() == item) {
-        	this.setItemInHand(hand, this.getItemInHand(this.getUsedItemHand()).getContainerItem());
+        if (!this.level().isClientSide && hasCraftingRemainingItem && this.getItemInHand(this.getUsedItemHand()).getItem() == item) {
+        	this.setItemInHand(hand, item.getCraftingRemainingItem().getDefaultInstance());
         }
     }
 
@@ -480,16 +489,16 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         if (this.wasEyeInWater) this.ticksEyesOutOfWater = 0;
         else this.ticksEyesOutOfWater++;
         
-        if (this.level.isNight() && !this.hasDecidedToSleepTonight()) {
+        if (this.level().isNight() && !this.hasDecidedToSleepTonight()) {
         	this.setSleepingThisNight(this.random.nextFloat() < .3f); //only sleep 30% of the time
         	this.setHasDecidedToSleepTonight(true);
-        } else if (!this.level.isNight() && this.hasDecidedToSleepTonight()) {
+        } else if (!this.level().isNight() && this.hasDecidedToSleepTonight()) {
         	this.setSleepingThisNight(false);
         	this.setHasDecidedToSleepTonight(false);
         }
         
         if (this.isSleeping()) {
-        	if (!this.level.isClientSide && !this.level.isNight()) {
+        	if (!this.level().isClientSide && !this.level().isNight()) {
         		this.stopSleeping();
         	}
         } else {
@@ -524,7 +533,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
          }
         
         
-        if (level.isClientSide || this.isSleeping()) return;
+        if (level().isClientSide || this.isSleeping()) return;
         
         if (this.getAirSupply() <= this.getMaxAirSupply() / 8 && !shouldCatchBreath) shouldCatchBreath = true;
         if (this.getAirSupply() == this.getMaxAirSupply() && shouldCatchBreath) shouldCatchBreath = false;
@@ -678,7 +687,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     public void aiStep() {
         super.aiStep();
 
-        if (tickCount % 220 == 0 && getTarget() == null && !this.level.isClientSide) {
+        if (tickCount % 220 == 0 && getTarget() == null && !this.level().isClientSide) {
             if (this.getData() != null) for (ItemStack stack : this.getData().getInventoryItems()) {
                 equipItemIfPossible(stack);
             }
@@ -698,24 +707,23 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
 
     @Override
-    public boolean equipItemIfPossible(ItemStack stack) {
-        if (getTarget() != null) return false;
+    public ItemStack equipItemIfPossible(ItemStack stack) {
+        if (getTarget() != null) return ItemStack.EMPTY;
 
         EquipmentSlot equipmentslot = getEquipmentSlotForItem(stack);
         ItemStack itemstack = this.getItemBySlot(equipmentslot);
         boolean flag = this.canReplaceCurrentItem(stack, itemstack);
         if (flag && this.canHoldItem(stack) && !(stack.getItem() instanceof TieredItem)) {
-            double d0 = this.getEquipmentDropChance(equipmentslot);
-            if (!itemstack.isEmpty() && (double) Math.max(this.random.nextFloat() - 0.1F, 0.0F) < d0) {
+            if (!itemstack.isEmpty()) {
                 getData().storeInventoryItem(itemstack);
             }
 
-            this.setItemSlotAndDropWhenKilled(equipmentslot, stack.copy());
-            this.equipEventAndSound(stack);
+            ItemStack equippedStack = stack.copyWithCount(1);
+            this.setItemSlotAndDropWhenKilled(equipmentslot, equippedStack);
             stack.shrink(1);
-            return true;
+            return equippedStack;
         } else {
-            return false;
+            return ItemStack.EMPTY;
         }
     }
 
@@ -813,9 +821,9 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             double d1 = target.getY(0.3333333333333333D) - mobArrow.getY();
             double d2 = target.getZ() - this.getZ();
             double d3 = Math.sqrt(d0 * d0 + d2 * d2);
-            mobArrow.shoot(d0, d1 + d3 * (double) 0.2F, d2, 1.6F, (float) (14 - this.level.getDifficulty().getId() * 4));
+            mobArrow.shoot(d0, d1 + d3 * (double) 0.2F, d2, 1.6F, (float) (14 - this.level().getDifficulty().getId() * 4));
             this.playSound(SoundEvents.SKELETON_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
-            this.level.addFreshEntity(mobArrow);
+            this.level().addFreshEntity(mobArrow);
         }
     }
 
@@ -827,16 +835,16 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         tridentStack.enchant(Enchantments.VANISHING_CURSE, 1);
         tridentStack.enchant(Enchantments.LOYALTY, 1);
 
-        ThrownTrident throwntrident = new ThrownTrident(this.level, this, tridentStack);
+        ThrownTrident throwntrident = new ThrownTrident(this.level(), this, tridentStack);
 
         double d0 = p_32356_.getX() - this.getX();
         double d1 = p_32356_.getY(1f / 3f) - throwntrident.getY();
         double d2 = p_32356_.getZ() - this.getZ();
         double d3 = Math.sqrt(d0 * d0 + d2 * d2);
-        throwntrident.shoot(d0, d1 + d3 * (double) 0.2F, d2, 1.6F, (float) (14 - this.level.getDifficulty().getId() * 4));
+        throwntrident.shoot(d0, d1 + d3 * (double) 0.2F, d2, 1.6F, (float) (14 - this.level().getDifficulty().getId() * 4));
         throwntrident.setOwner(this);
         this.playSound(SoundEvents.TRIDENT_THROW, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
-        this.level.addFreshEntity(throwntrident);
+        this.level().addFreshEntity(throwntrident);
     }
 
     @Override
@@ -855,16 +863,16 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
         if (potionStack == null) return;
 
-        ThrownPotion thrownPotion = new ThrownPotion(this.level, this);
+        ThrownPotion thrownPotion = new ThrownPotion(this.level(), this);
         thrownPotion.setItem(potionStack.copy());
         thrownPotion.setXRot(thrownPotion.getXRot() + 20.0F);
         thrownPotion.shoot($$3, $$4 + $$6 * 0.2, $$5, 0.75F, 8.0F);
         potionStack.shrink(1);
         if (!this.isSilent()) {
-            this.level.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.WITCH_THROW, this.getSoundSource(), 1.0F, 0.8F + this.random.nextFloat() * 0.4F);
+            this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.WITCH_THROW, this.getSoundSource(), 1.0F, 0.8F + this.random.nextFloat() * 0.4F);
         }
 
-        this.level.addFreshEntity(thrownPotion);
+        this.level().addFreshEntity(thrownPotion);
     }
     
     
@@ -909,7 +917,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
 
     public void updateSwimming() {
-       if (!this.level.isClientSide) {
+       if (!this.level().isClientSide) {
           if (this.isEffectiveAi() && this.isInWater() && this.wantsToSwim()) {
              this.navigation = this.waterNavigation;
              this.setSwimming(true);
@@ -954,7 +962,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
              this.human.setSpeed(f2);
              this.human.setDeltaMovement(this.human.getDeltaMovement().add((double)f2 * d0 * 0.005D, (double)f2 * d1 * 0.1D, (double)f2 * d2 * 0.005D));
           } else {
-             if (!this.human.onGround) {
+             if (!this.human.onGround()) {
                 this.human.setDeltaMovement(this.human.getDeltaMovement().add(0.0D, -0.008D, 0.0D));
              }
 

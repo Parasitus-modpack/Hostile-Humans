@@ -8,7 +8,7 @@ package com.craftix.hostile_humans.entity.ai.goal;
 import com.craftix.hostile_humans.Config;
 import com.craftix.hostile_humans.HumanUtil;
 import com.craftix.hostile_humans.entity.entities.Human;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
@@ -71,7 +71,7 @@ public class NearestAttackableTargetGoalWithHumanLimiter<T extends LivingEntity>
 
                 if (isLookingAtTarget(human, target)) {
                     human.isAlert = true;
-                    var otherHumansOnTeam = human.level.getEntities(human, human.getBoundingBox().inflate(25), entity -> entity instanceof Human otherHuman && otherHuman.team.equals(human.team));
+                    var otherHumansOnTeam = human.level().getEntities(human, human.getBoundingBox().inflate(25), entity -> entity instanceof Human otherHuman && otherHuman.team.equals(human.team));
                     for (Entity otherHuman : otherHumansOnTeam) {
                         ((Human) otherHuman).isAlert = true;
                     }
@@ -81,7 +81,7 @@ public class NearestAttackableTargetGoalWithHumanLimiter<T extends LivingEntity>
                     }
                 }
 
-                var targetters = player.level.getEntities(player, player.getBoundingBox().inflate(15), entity -> entity instanceof Human human && human.getTarget() == target && human != mob);
+                var targetters = player.level().getEntities(player, player.getBoundingBox().inflate(15), entity -> entity instanceof Human human && human.getTarget() == target && human != mob);
                 if (targetters.size() >= Config.maxTargeting.get()) {
                     setTarget(null);
                     return false;
@@ -99,8 +99,9 @@ public class NearestAttackableTargetGoalWithHumanLimiter<T extends LivingEntity>
             if (name.isEmpty()) {
                 name = "Human";
             }
-            if (target != null)
-                target.sendMessage(new TextComponent("<" + name + "> " + greetings[(int) (Math.random() * greetings.length)]), mob.getUUID());
+            if (target != null) {
+                target.sendSystemMessage(Component.literal("<" + name + "> " + greetings[(int) (Math.random() * greetings.length)]));
+            }
         }
 
         return usable;

@@ -38,7 +38,7 @@ public class LookForChestGoal extends Goal {
 			for (int y = -5; y < 5; y++)
 				for (int z = -20; z < 20; z++) {
 					BlockPos chestPos = this.mob.blockPosition().offset(x, y, z);
-					if (this.mob.level.getBlockState(chestPos).getBlock() instanceof ChestBlock) {
+					if (this.mob.level().getBlockState(chestPos).getBlock() instanceof ChestBlock) {
 						this.pos = chestPos;
 						this.timer = this.mob.getRandom().nextInt(20 * 5, 20 * 15);
 						return true;
@@ -83,12 +83,12 @@ public class LookForChestGoal extends Goal {
 	public void tick() {
 		if (this.mob.blockPosition().distSqr(this.pos) < 5D) {
 			this.mob.getNavigation().stop();
-			if (this.mob.level.getBlockEntity(this.pos) instanceof ChestExtension ch) {
+			if (this.mob.level().getBlockEntity(this.pos) instanceof ChestExtension ch) {
 				this.timer--;
 				if (timer > 0)
-					ch.openersCounter().incrementOpeners(null, this.mob.level, this.pos, this.mob.level.getBlockState(pos));
+					ch.openersCounter().incrementOpeners(null, this.mob.level(), this.pos, this.mob.level().getBlockState(pos));
 				else {
-					ch.openersCounter().decrementOpeners(null, this.mob.level, this.pos, this.mob.level.getBlockState(pos));
+					ch.openersCounter().decrementOpeners(null, this.mob.level(), this.pos, this.mob.level().getBlockState(pos));
 					this.pos = UNREACHABLE;
 					this.mob.lookForChestCooldown = 20 * 60 * 10;
 				}

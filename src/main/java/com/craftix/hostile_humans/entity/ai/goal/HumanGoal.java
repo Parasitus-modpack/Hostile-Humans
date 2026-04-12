@@ -17,7 +17,7 @@ public class HumanGoal extends Goal {
 
     public HumanGoal(HumanEntity humanEntity) {
         this.mob = humanEntity;
-        this.level = this.mob.level;
+        this.level = this.mob.level();
         this.navigation = this.mob.getNavigation();
     }
 

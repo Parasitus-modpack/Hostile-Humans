@@ -64,7 +64,7 @@ public class AvoidTNTGoal extends Goal {
     }
 
     public boolean canUse() {
-        this.toAvoid = getNearestEntity(mob.level.getEntitiesOfClass(PrimedTnt.class, this.mob.getBoundingBox().inflate((double) this.maxDist, 3.0D, (double) this.maxDist)), mob.getX(), mob.getY(), mob.getZ());
+        this.toAvoid = getNearestEntity(mob.level().getEntitiesOfClass(PrimedTnt.class, this.mob.getBoundingBox().inflate((double) this.maxDist, 3.0D, (double) this.maxDist)), mob.getX(), mob.getY(), mob.getZ());
         if (this.toAvoid == null) {
             return false;
         } else {

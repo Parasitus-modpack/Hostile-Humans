@@ -177,7 +177,7 @@ public class HumanUtil {
     }
 
     public static boolean isLadder(BlockState state, LivingEntity entity, BlockPos pos) {
-        return state.isLadder(entity.level, pos, entity);
+        return state.isLadder(entity.level(), pos, entity);
     }
 
     public static int createLadderNodeFor(int nodeID, Node[] nodes, Node origin, Function<BlockPos, Node> nodeGetter, BlockGetter getter, Mob mob) {

@@ -24,7 +24,7 @@ public abstract class DoorMixin {
 	public void useInject(BlockState p_57540_, Level pLevel, BlockPos p_57542_, Player pPlayer, InteractionHand p_57544_, BlockHitResult p_57545_, CallbackInfoReturnable<InteractionResult> cir) {
 		if (cir.getReturnValue() == InteractionResult.CONSUME) {
 			if (!pLevel.isClientSide && !pPlayer.isCreative()) {
-				for (Human human : pPlayer.level.getEntitiesOfClass(Human.class, pPlayer.getBoundingBox().inflate(16.0))) {
+				for (Human human : pPlayer.level().getEntitiesOfClass(Human.class, pPlayer.getBoundingBox().inflate(16.0))) {
 					human.setInvestigateSound(p_57545_.getBlockPos());
 				}
 			}

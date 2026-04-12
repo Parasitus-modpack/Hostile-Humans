@@ -29,7 +29,7 @@ public class MessageCommandHuman {
     public static void handlePacket(MessageCommandHuman message,
                                     NetworkEvent.Context context) {
         ServerPlayer serverPlayer = context.getSender();
-        ServerLevel serverLevel = serverPlayer.getLevel();
+        ServerLevel serverLevel = serverPlayer.serverLevel();
         UUID uuid = UUID.fromString(message.getHHFollowerUUID());
         Entity entity = serverLevel.getEntity(uuid);
 

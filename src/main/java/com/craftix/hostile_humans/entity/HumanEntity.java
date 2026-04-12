@@ -8,7 +8,6 @@ import com.craftix.hostile_humans.entity.entities.Human;
 import com.craftix.hostile_humans.entity.type.human.PickUpLoot;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.Util;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -79,13 +78,13 @@ public class HumanEntity extends HumanMobEntityData {
         if (!canEat(itemStack)) {
             return false;
         }
-        this.gameEvent(GameEvent.MOB_INTERACT, this.eyeBlockPosition());
+        this.gameEvent(GameEvent.ENTITY_INTERACT, player);
 
         Item item = itemStack.getItem();
         this.heal(item.getFoodProperties() != null ? item.getFoodProperties().getNutrition() : 0.5F);
         if (item.getFoodProperties() != null) {
             for (Pair<MobEffectInstance, Float> pair : item.getFoodProperties().getEffects()) {
-                if (!this.level.isClientSide && pair.getFirst() != null && this.level.random.nextFloat() < pair.getSecond()) {
+                if (!this.level().isClientSide && pair.getFirst() != null && this.getRandom().nextFloat() < pair.getSecond()) {
                     this.addEffect(new MobEffectInstance(pair.getFirst()));
                 }
             }
@@ -144,8 +143,8 @@ public class HumanEntity extends HumanMobEntityData {
 
     public void sendOwnerMessage(Component component) {
         LivingEntity owner = this.getOwner();
-        if (component != null && owner != null) {
-            owner.sendMessage(component, Util.NIL_UUID);
+        if (component != null && owner instanceof Player player) {
+            player.displayClientMessage(component, false);
         }
     }
 
@@ -234,7 +233,7 @@ public class HumanEntity extends HumanMobEntityData {
     @Override
     protected void dropEquipment() {
         HumanData humanMobEntityData;
-        if (!this.level.isClientSide) {
+        if (!this.level().isClientSide) {
 
             humanMobEntityData = HumanServerData.get().getHumanMob(getUUID());
 

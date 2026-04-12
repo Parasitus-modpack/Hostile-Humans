@@ -9,13 +9,12 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.ai.util.GoalUtils;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
-import net.minecraft.world.level.material.Material;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.Path;
+import net.minecraft.tags.BlockTags;
 
 public abstract class TrapdoorInteractGoal extends Goal {
 	protected Mob mob;
@@ -35,7 +34,7 @@ public abstract class TrapdoorInteractGoal extends Goal {
 		if (!this.hasDoor) {
 			return false;
 		} else {
-			BlockState blockstate = this.mob.level.getBlockState(this.doorPos);
+			BlockState blockstate = this.mob.level().getBlockState(this.doorPos);
 			if (!(blockstate.getBlock() instanceof TrapDoorBlock)) {
 				this.hasDoor = false;
 				return false;
@@ -48,10 +47,10 @@ public abstract class TrapdoorInteractGoal extends Goal {
 	protected void setOpen(boolean p_25196_) {
 		System.out.println("Tried to open "+p_25196_);
 		if (this.hasDoor) {
-			BlockState blockstate = this.mob.level.getBlockState(this.doorPos);
+			BlockState blockstate = this.mob.level().getBlockState(this.doorPos);
 			if (blockstate.getBlock() instanceof TrapDoorBlock) {
 				blockstate.setValue(TrapDoorBlock.OPEN, p_25196_);
-				setOpenTrapdoor(this.mob, this.mob.level, blockstate, this.doorPos, p_25196_);
+				setOpenTrapdoor(this.mob, this.mob.level(), blockstate, this.doorPos, p_25196_);
 			}
 		}
 
@@ -76,7 +75,7 @@ public abstract class TrapdoorInteractGoal extends Goal {
 						///System.out.println(this.mob.getId()+" Node + "+j+" "+this.doorPos);
 						//						if (!(this.mob.distanceToSqr((double)this.mob.getX(), this.doorPos.getY(), (double)this.mob.getZ()) > 2.25D)) {
 						///System.out.println(this.mob.getId()+" C"+i);
-						this.hasDoor = isWoodenTrapdoor(this.mob.level, this.doorPos);
+						this.hasDoor = isWoodenTrapdoor(this.mob.level(), this.doorPos);
 						if (this.hasDoor) {
 							///System.out.println(this.mob.getId()+" D"+i);
 							return true;
@@ -87,7 +86,7 @@ public abstract class TrapdoorInteractGoal extends Goal {
 				}
 
 				this.doorPos = this.mob.blockPosition().above();
-				this.hasDoor = isWoodenTrapdoor(this.mob.level, this.doorPos);
+				this.hasDoor = isWoodenTrapdoor(this.mob.level(), this.doorPos);
 				return this.hasDoor;
 			} else {
 				return false;
@@ -124,7 +123,7 @@ public abstract class TrapdoorInteractGoal extends Goal {
 	}
 
 	public static boolean isWoodenTrapdoor(BlockState p_52818_) {
-		return p_52818_.getBlock() instanceof TrapDoorBlock && (p_52818_.getMaterial() == Material.WOOD || p_52818_.getMaterial() == Material.NETHER_WOOD);
+		return p_52818_.getBlock() instanceof TrapDoorBlock && p_52818_.is(BlockTags.WOODEN_TRAPDOORS);
 	}
 	
 	public void setOpenTrapdoor(@Nullable Entity p_153166_, Level p_153167_, BlockState p_153168_, BlockPos p_153169_, boolean p_153170_) {

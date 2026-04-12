@@ -18,7 +18,7 @@ import net.minecraftforge.registries.RegistryObject;
 public class ModEntityType {
 
     public static final DeferredRegister<EntityType<?>> ENTITIES =
-            DeferredRegister.create(ForgeRegistries.ENTITIES, HostileHumans.MOD_ID);
+            DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, HostileHumans.MOD_ID);
     public static final RegistryObject<EntityType<Human>> HUMAN1 = ENTITIES.register("human_tier1",
             () -> EntityType.Builder.<Human>of((entityEntityType, level) -> new Human(entityEntityType, level, HumanTier.LEVEL1), HumanEntity.CATEGORY)
                     .sized(0.6F, 1.8F).clientTrackingRange(16).build("human_tier1"));

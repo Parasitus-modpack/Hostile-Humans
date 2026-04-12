@@ -41,7 +41,7 @@ public abstract class FenceInteractGoal extends Goal {
         if (!this.hasFence) {
             return false;
         } else {
-            BlockState blockstate = this.mob.level.getBlockState(this.fencePosPos);
+            BlockState blockstate = this.mob.level().getBlockState(this.fencePosPos);
             if (!(blockstate.getBlock() instanceof FenceGateBlock)) {
                 this.hasFence = false;
                 return false;
@@ -53,9 +53,9 @@ public abstract class FenceInteractGoal extends Goal {
 
     protected void setOpen(boolean p_25196_) {
         if (this.hasFence) {
-            BlockState blockstate = this.mob.level.getBlockState(this.fencePosPos);
+            BlockState blockstate = this.mob.level().getBlockState(this.fencePosPos);
             if (blockstate.getBlock() instanceof FenceGateBlock) {
-                setOpen((FenceGateBlock) blockstate.getBlock(), this.mob, this.mob.level, blockstate, this.fencePosPos, p_25196_);
+                setOpen((FenceGateBlock) blockstate.getBlock(), this.mob, this.mob.level(), blockstate, this.fencePosPos, p_25196_);
             }
         }
     }
@@ -93,7 +93,7 @@ public abstract class FenceInteractGoal extends Goal {
                     Node node = path.getNode(i);
                     this.fencePosPos = new BlockPos(node.x, node.y + 1, node.z);
                     if (!(this.mob.distanceToSqr((double) this.fencePosPos.getX(), this.mob.getY(), (double) this.fencePosPos.getZ()) > 2.25D)) {
-                        this.hasFence = isFence(this.mob.level, this.fencePosPos);
+                        this.hasFence = isFence(this.mob.level(), this.fencePosPos);
                         if (this.hasFence) {
                             return true;
                         }
@@ -101,7 +101,7 @@ public abstract class FenceInteractGoal extends Goal {
                 }
 
                 this.fencePosPos = this.mob.blockPosition();
-                this.hasFence = isFence(this.mob.level, this.fencePosPos);
+                this.hasFence = isFence(this.mob.level(), this.fencePosPos);
                 return this.hasFence;
             } else {
                 return false;

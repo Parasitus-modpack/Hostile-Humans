@@ -38,7 +38,7 @@ public class MeleeAttackGoal extends HumanGoal {
         if (mob instanceof Human human && human.isFleeing)
             return false;
 
-        long gameTime = this.mob.level.getGameTime();
+        long gameTime = this.mob.level().getGameTime();
         if (gameTime - this.lastCanUseCheck < COOLDOWN_BETWEEN_CAN_USE_CHECKS) {
             return false;
         } else {

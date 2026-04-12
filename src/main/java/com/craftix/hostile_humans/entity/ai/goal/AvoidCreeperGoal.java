@@ -64,7 +64,7 @@ public class AvoidCreeperGoal extends Goal {
 
     public boolean canUse() {
 
-        this.toAvoid = getNearestEntity(mob.level.getEntitiesOfClass(Creeper.class, this.mob.getBoundingBox().inflate((double) this.maxDist, 10, (double) this.maxDist)), mob.getX(), mob.getY(), mob.getZ());
+        this.toAvoid = getNearestEntity(mob.level().getEntitiesOfClass(Creeper.class, this.mob.getBoundingBox().inflate((double) this.maxDist, 10, (double) this.maxDist)), mob.getX(), mob.getY(), mob.getZ());
         if (this.toAvoid == null) {
             return false;
         } else {

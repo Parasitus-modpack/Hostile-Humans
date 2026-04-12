@@ -37,7 +37,7 @@ public class LadderClimbGoal extends Goal {
         if (i + 1 < this.path.getNodeCount()) {
             int y = this.path.getNode(i).y;
             Node pointNext = this.path.getNode(i + 1);
-            BlockState down = this.entity.level.getBlockState(this.entity.blockPosition().below());
+            BlockState down = this.entity.level().getBlockState(this.entity.blockPosition().below());
             double yMotion;
             if (pointNext.y < y || (pointNext.y == y && !isLadder(down, this.entity, this.entity.blockPosition().below())))
                 yMotion = -0.15;

@@ -8,8 +8,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
-import net.minecraftforge.event.entity.EntityLeaveWorldEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
 import net.minecraftforge.event.entity.EntityTeleportEvent;
 import net.minecraftforge.event.entity.EntityTravelToDimensionEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
@@ -34,7 +34,7 @@ public class HumanManagerEventHandler {
     private static short ticks = 0;
 
     @SubscribeEvent(priority = EventPriority.LOW)
-    public static void handleEntityJoinWorldEvent(EntityJoinWorldEvent event) {
+    public static void handleEntityJoinWorldEvent(EntityJoinLevelEvent event) {
         updateOrRegisterHumanMob(event.getEntity());
     }
 
@@ -49,7 +49,7 @@ public class HumanManagerEventHandler {
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
-    public static void handleEntityLeaveWorldEvent(EntityLeaveWorldEvent event) {
+    public static void handleEntityLeaveWorldEvent(EntityLeaveLevelEvent event) {
         updateHumanMobData(event.getEntity());
     }
 
@@ -83,13 +83,13 @@ public class HumanManagerEventHandler {
 
     @SubscribeEvent
     public static void handlePlayerChangedDimensionEvent(PlayerChangedDimensionEvent event) {
-        verifyHHFollowerForPlayer(event.getPlayer());
-        syncHHFollowersDataToPlayer(event.getPlayer());
+        verifyHHFollowerForPlayer(event.getEntity());
+        syncHHFollowersDataToPlayer(event.getEntity());
     }
 
     @SubscribeEvent
     public static void handlePlayerLoggedInEvent(PlayerEvent.PlayerLoggedInEvent event) {
-        syncHHFollowersDataToPlayer(event.getPlayer());
+        syncHHFollowersDataToPlayer(event.getEntity());
     }
 
     private static void scheduleHumanMobDataUpdate(Entity entity) {
@@ -119,14 +119,14 @@ public class HumanManagerEventHandler {
     }
 
     private static void updateOrRegisterHumanMob(Entity entity) {
-        if (entity instanceof HumanEntity humanEntity && !humanEntity.getLevel().isClientSide && humanEntity.hasOwner()) {
+        if (entity instanceof HumanEntity humanEntity && !humanEntity.level().isClientSide && humanEntity.hasOwner()) {
 
             HumanServerData.get().updateOrRegisterHumanMob(humanEntity);
         }
     }
 
     private static void updateHumanMobData(Entity entity) {
-        if (entity instanceof HumanEntity humanEntity && !humanEntity.getLevel().isClientSide && humanEntity.hasOwner()) {
+        if (entity instanceof HumanEntity humanEntity && !humanEntity.level().isClientSide && humanEntity.hasOwner()) {
             HumanServerData.get().updateHumanData(humanEntity);
         }
     }
@@ -140,11 +140,11 @@ public class HumanManagerEventHandler {
             MinecraftServer server = serverPlayer.getServer();
             Iterator<ServerLevel> serverLevels = server.getAllLevels().iterator();
 
-            Set<Entity> humanMobEntitiesEntityInOwnersDimension = data.getHumanMobsEntity(player.getUUID(), serverPlayer.getLevel());
+            Set<Entity> humanMobEntitiesEntityInOwnersDimension = data.getHumanMobsEntity(player.getUUID(), serverPlayer.serverLevel());
 
             while (serverLevels.hasNext()) {
                 ServerLevel serverLevel = serverLevels.next();
-                if (serverPlayer.getLevel() != serverLevel) {
+                if (serverPlayer.serverLevel() != serverLevel) {
                     for (Entity humanEntity : humanMobEntitiesEntityInOwnersDimension) {
                         Entity entity = serverLevel.getEntity(humanEntity.getUUID());
                         if (entity != null) {

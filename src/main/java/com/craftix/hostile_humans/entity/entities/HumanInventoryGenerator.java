@@ -8,13 +8,13 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.util.RandomSource;
 import net.minecraftforge.fml.ModList;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 
 import static com.craftix.hostile_humans.HumanUtil.isRangedWeapon;
 import static com.craftix.hostile_humans.entity.entities.HumanTier.LEVEL1;
@@ -39,7 +39,7 @@ public class HumanInventoryGenerator {
         Item[] weaponPick = tier1Weapons;
         float enchantChance = 0.3f;
         float armorChance = 0.25f;
-        Random random = human.getRandom();
+        RandomSource random = human.getRandom();
         HumanTier humanTier = human.getTier();
 
         switch (humanTier) {
@@ -163,11 +163,11 @@ public class HumanInventoryGenerator {
             }
         }
 
-        human.enchantSpawnedWeapon(enchantChance);
+        human.applySpawnedWeaponEnchantments(random, enchantChance);
 
         for (EquipmentSlot equipmentslot : EquipmentSlot.values()) {
             if (equipmentslot.getType() == EquipmentSlot.Type.ARMOR) {
-                human.enchantSpawnedArmor(enchantChance, equipmentslot);
+                human.applySpawnedArmorEnchantments(random, enchantChance, equipmentslot);
             }
         }
 

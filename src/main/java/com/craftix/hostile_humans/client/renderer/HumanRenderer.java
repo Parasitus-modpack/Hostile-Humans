@@ -2,7 +2,7 @@ package com.craftix.hostile_humans.client.renderer;
 
 import com.craftix.hostile_humans.entity.entities.Human;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Vector3f;
+import com.mojang.math.Axis;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelLayers;
@@ -30,9 +30,9 @@ public class HumanRenderer extends HumanoidMobRenderer<Human, PlayerModel<Human>
 
     public HumanRenderer(EntityRendererProvider.Context context) {
         super(context, new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER), false), 0.5F);
-        this.addLayer(new HumanoidArmorLayer<>(this, new HumanoidModel(context.bakeLayer(ModelLayers.PLAYER_INNER_ARMOR)), new HumanoidModel(context.bakeLayer(ModelLayers.PLAYER_OUTER_ARMOR))));
+        this.addLayer(new HumanoidArmorLayer<>(this, new HumanoidModel<>(context.bakeLayer(ModelLayers.PLAYER_INNER_ARMOR)), new HumanoidModel<>(context.bakeLayer(ModelLayers.PLAYER_OUTER_ARMOR)), context.getModelManager()));
         this.addLayer(new ArrowLayer<>(context, this));
-        this.addLayer(new CustomHeadLayer<>(this, context.getModelSet()));
+        this.addLayer(new CustomHeadLayer<>(this, context.getModelSet(), context.getItemInHandRenderer()));
         this.addLayer(new ElytraLayer<>(this, context.getModelSet()));
         this.addLayer(new BeeStingerLayer<>(this));
     }
@@ -67,7 +67,7 @@ public class HumanRenderer extends HumanoidMobRenderer<Human, PlayerModel<Human>
             float f1 = (float) p_117802_.getFallFlyingTicks() + p_117806_;
             float f2 = Mth.clamp(f1 * f1 / 100.0F, 0.0F, 1.0F);
             if (!p_117802_.isAutoSpinAttack()) {
-                p_117803_.mulPose(Vector3f.XP.rotationDegrees(f2 * (-90.0F - p_117802_.getXRot())));
+                p_117803_.mulPose(Axis.XP.rotationDegrees(f2 * (-90.0F - p_117802_.getXRot())));
             }
 
             Vec3 vec3 = p_117802_.getViewVector(p_117806_);
@@ -77,13 +77,13 @@ public class HumanRenderer extends HumanoidMobRenderer<Human, PlayerModel<Human>
             if (d0 > 0.0D && d1 > 0.0D) {
                 double d2 = (vec31.x * vec3.x + vec31.z * vec3.z) / Math.sqrt(d0 * d1);
                 double d3 = vec31.x * vec3.z - vec31.z * vec3.x;
-                p_117803_.mulPose(Vector3f.YP.rotation((float) (Math.signum(d3) * Math.acos(d2))));
+                p_117803_.mulPose(Axis.YP.rotation((float) (Math.signum(d3) * Math.acos(d2))));
             }
         } else if (f > 0.0F) {
             super.setupRotations(p_117802_, p_117803_, p_117804_, p_117805_, p_117806_);
             float f3 = p_117802_.isInWater() ? -90.0F - p_117802_.getXRot() : -90.0F;
             float f4 = Mth.lerp(f, 0.0F, f3);
-            p_117803_.mulPose(Vector3f.XP.rotationDegrees(f4));
+            p_117803_.mulPose(Axis.XP.rotationDegrees(f4));
             if (p_117802_.isVisuallySwimming()) {
                 p_117803_.translate(0.0D, -1.0D, 0.3F);
             }

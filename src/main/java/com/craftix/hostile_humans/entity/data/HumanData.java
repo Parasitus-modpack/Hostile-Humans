@@ -5,7 +5,6 @@ import com.craftix.hostile_humans.entity.HumanEntity;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.ResourceKey;
@@ -16,6 +15,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nonnull;
 import java.util.UUID;
@@ -184,8 +184,8 @@ public class HumanData {
             }
         }
         this.blockPos = humanMob.blockPosition();
-        this.level = humanMob.getLevel().dimension();
-        this.levelName = this.level.getRegistryName() + "/" + this.level.location();
+        this.level = humanMob.level().dimension();
+        this.levelName = this.level.registry() + "/" + this.level.location();
         this.entityId = humanMob.getId();
         this.entityAggressionLevel = humanMob.getAggressionLevel();
 
@@ -195,12 +195,12 @@ public class HumanData {
 
         this.entityData = humanMob.serializeNBT();
 
-        Level humanMobLevel = humanMob.getLevel();
+        Level humanMobLevel = humanMob.level();
 
         if (humanMobLevel.isClientSide) {
-            this.clientLevel = (ClientLevel) humanMob.getLevel();
+            this.clientLevel = (ClientLevel) humanMob.level();
         } else {
-            this.serverLevel = (ServerLevel) humanMob.getLevel();
+            this.serverLevel = (ServerLevel) humanMob.level();
         }
 
         setArmorItems((NonNullList<ItemStack>) humanMob.getArmorSlots());
@@ -233,8 +233,7 @@ public class HumanData {
             this.entityId = compoundTag.getInt(ENTITY_ID_TAG);
         }
         if (compoundTag.contains(ENTITY_TYPE_TAG)) {
-            this.entityType =
-                    Registry.ENTITY_TYPE.get(new ResourceLocation(compoundTag.getString(ENTITY_TYPE_TAG)));
+            this.entityType = ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation(compoundTag.getString(ENTITY_TYPE_TAG)));
         }
         this.entityData = compoundTag.getCompound(ENTITY_DATA_TAG);
 
@@ -269,7 +268,10 @@ public class HumanData {
             compoundTag.putString(LEVEL_TAG, this.levelName);
         }
         compoundTag.putInt(ENTITY_ID_TAG, this.entityId);
-        compoundTag.putString(ENTITY_TYPE_TAG, this.entityType.getRegistryName().toString());
+        ResourceLocation entityTypeId = ForgeRegistries.ENTITY_TYPES.getKey(this.entityType);
+        if (entityTypeId != null) {
+            compoundTag.putString(ENTITY_TYPE_TAG, entityTypeId.toString());
+        }
 
         HumanEntity humanEntity = this.getHHFollowerEntity();
 

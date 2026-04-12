@@ -22,7 +22,7 @@ public class FindWaterOnFireGoal extends Goal {
     public FindWaterOnFireGoal(PathfinderMob p_25221_, double p_25222_) {
         this.mob = p_25221_;
         this.speedModifier = p_25222_;
-        this.level = p_25221_.level;
+        this.level = p_25221_.level();
         this.setFlags(EnumSet.of(Flag.MOVE));
     }
 

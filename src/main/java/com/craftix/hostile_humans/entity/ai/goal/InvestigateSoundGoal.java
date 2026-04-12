@@ -61,7 +61,7 @@ public class InvestigateSoundGoal extends Goal {
 	public void start() {
 		if (this.mob instanceof Human investigator) {
 			this.pos = investigator.investigateSound();
-			if (this.mob.level.getBlockState(pos).isAir()) {
+			if (this.mob.level().getBlockState(pos).isAir()) {
 				this.pos = pos.below();
 			}
 		}

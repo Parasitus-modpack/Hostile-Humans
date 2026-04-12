@@ -4,12 +4,13 @@ import com.craftix.hostile_humans.HumanUtil;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.arguments.ResourceOrTagLocationArgument;
+import net.minecraft.commands.arguments.ResourceOrTagKeyArgument;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.commands.LocateCommand;
-import net.minecraft.world.level.levelgen.feature.ConfiguredStructureFeature;
+import net.minecraft.world.level.levelgen.structure.Structure;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -22,21 +23,23 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class LocateMixin {
 
     @Unique
-    private static final DynamicCommandExceptionType ERROR_DISABLED = new DynamicCommandExceptionType((p_201831_) -> new TranslatableComponent("error.disabled", p_201831_));
+    private static final DynamicCommandExceptionType ERROR_DISABLED = new DynamicCommandExceptionType(value -> Component.translatable("error.disabled", value));
     @Shadow
     @Final
-    private static DynamicCommandExceptionType ERROR_INVALID;
+    private static DynamicCommandExceptionType ERROR_STRUCTURE_INVALID;
 
-    @Inject(method = "locate", at = @At(value = "HEAD"))
-    private static void injected(CommandSourceStack p_207515_, ResourceOrTagLocationArgument.Result<ConfiguredStructureFeature<?, ?>> p_207516_, CallbackInfoReturnable<Integer> cir) throws CommandSyntaxException {
+    @Inject(method = "locateStructure", at = @At("HEAD"))
+    private static void injected(CommandSourceStack sourceStack, ResourceOrTagKeyArgument.Result<Structure> result, CallbackInfoReturnable<Integer> cir) throws CommandSyntaxException {
 
-        Registry<ConfiguredStructureFeature<?, ?>> registry = p_207515_.getLevel().registryAccess().registryOrThrow(Registry.CONFIGURED_STRUCTURE_FEATURE_REGISTRY);
-        HolderSet<ConfiguredStructureFeature<?, ?>> holderset = p_207516_.unwrap().map((p_207532_) -> registry.getHolder(p_207532_).map(HolderSet::direct), registry::getTag).orElseThrow(() -> ERROR_INVALID.create(p_207516_.asPrintable()));
+        Registry<Structure> registry = sourceStack.getLevel().registryAccess().registryOrThrow(Registries.STRUCTURE);
+        HolderSet<Structure> holderset = result.unwrap()
+                .map(resourceKey -> registry.getHolder(resourceKey).map(HolderSet::direct), registry::getTag)
+                .orElseThrow(() -> ERROR_STRUCTURE_INVALID.create(result.asPrintable()));
 
         for (var val : holderset) {
             String path = val.unwrapKey().get().location().getPath();
             if (HumanUtil.isStructureDisabled(path)) {
-                throw (ERROR_DISABLED.create(p_207516_.asPrintable()));
+                throw ERROR_DISABLED.create(result.asPrintable());
             }
         }
     }

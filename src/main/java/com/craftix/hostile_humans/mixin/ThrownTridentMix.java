@@ -25,11 +25,11 @@ public abstract class ThrownTridentMix extends AbstractArrow {
 
     @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
     private void injected(CallbackInfo ci) {
-        if (level.isClientSide) return;
+        if (level().isClientSide) return;
         if (tickCount < 20) return;
         if (getOwner() == null) return;
 
-        var otherHumans = level.getEntities(this, this.getBoundingBox().inflate(0.4), entity -> entity instanceof Human otherHuman && getOwner() == otherHuman);
+        var otherHumans = level().getEntities(this, this.getBoundingBox().inflate(0.4), entity -> entity instanceof Human otherHuman && getOwner() == otherHuman);
         for (Entity otherHuman : otherHumans) {
             Human human = (Human) otherHuman;
             human.putItemAway(tridentItem.copy());

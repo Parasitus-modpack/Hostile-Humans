@@ -5,7 +5,6 @@ import com.craftix.hostile_humans.compat.FarmersDelight;
 import com.craftix.hostile_humans.compat.TravelersBackpack;
 import com.craftix.hostile_humans.entity.entities.Human;
 //import com.natamus.villagernames_common_forge.util.Names;
-import com.natamus.villagernames_common_forge.util.Names;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
@@ -15,13 +14,12 @@ import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.living.LivingSpawnEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
-import net.minecraftforge.event.world.BlockEvent;
-import net.minecraftforge.event.world.ExplosionEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
@@ -37,46 +35,32 @@ public class EventHandler {
     String randomTag = "gave_gear" + (int) (Math.random() * 10000);
     
     @SubscribeEvent
-    public void explode(ExplosionEvent event) {
-    	if (!event.getWorld().isClientSide) {
-			for (Human human : event.getWorld().getEntitiesOfClass(Human.class, event.getExplosion().getExploder().getBoundingBox().inflate(16.0))) {
-				human.setInvestigateSound(new BlockPos(event.getExplosion().getPosition()));
-			}
-		}
+    public void explode(ExplosionEvent.Detonate event) {
+        if (!event.getLevel().isClientSide() && event.getExplosion().getExploder() != null) {
+            for (Human human : event.getLevel().getEntitiesOfClass(Human.class, event.getExplosion().getExploder().getBoundingBox().inflate(16.0))) {
+                human.setInvestigateSound(BlockPos.containing(event.getExplosion().getPosition()));
+            }
+        }
     }
     
     @SubscribeEvent
     public void damage(LivingDamageEvent event) {
-    	if (!event.getEntity().level.isClientSide) {
-			for (Human human : event.getEntity().level.getEntitiesOfClass(Human.class, event.getEntity().getBoundingBox().inflate(16.0))) {
-				human.setInvestigateSound(event.getEntity().blockPosition());
-			}
-		}
+        if (!event.getEntity().level().isClientSide) {
+            for (Human human : event.getEntity().level().getEntitiesOfClass(Human.class, event.getEntity().getBoundingBox().inflate(16.0))) {
+                human.setInvestigateSound(event.getEntity().blockPosition());
+            }
+        }
     }
 
     @SubscribeEvent
     public void serverStart(ServerStartedEvent event) {
     	HostileHumans.patreonNames.forEach(name -> {
-        	if (Names.customnames != null) {
-        		if (!Names.customnames.contains(name)) {
-        			Names.customnames.add(name);
-        		}
-        	}
+            CollectiveVillagerNames.addCustomName(name);
     	});
     	
         if (!addedFarmerItems && ModList.get().isLoaded("farmersdelight")) {
             FarmersDelight.addFoodItems();
             addedFarmerItems = true;
-        }
-    }
-
-    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
-    public void spawn(LivingSpawnEvent.SpecialSpawn event) {
-        if (ModList.get().isLoaded("travelersbackpack") && event.getEntity() instanceof Human human) {
-            TravelersBackpack.apply(human);
-        }
-        if (ModList.get().isLoaded("villagernames") && event.getEntity() instanceof Human human) {
-            CollectiveVillagerNames.nameEntity(human);
         }
     }
 
@@ -91,7 +75,7 @@ public class EventHandler {
     public void onPlace(BlockEvent.EntityPlaceEvent event) {
         var placer = event.getEntity();
         if (placer != null) {
-            var humans = placer.level.getEntities(placer, placer.getBoundingBox().inflate(10), entity -> entity instanceof Human otherHuman);
+            var humans = placer.level().getEntities(placer, placer.getBoundingBox().inflate(10), entity -> entity instanceof Human otherHuman);
             for (Entity otherHuman : humans) {
                 ((Human) otherHuman).isAlert = true;
             }
@@ -102,7 +86,7 @@ public class EventHandler {
     public void onPlayerDamage(LivingDamageEvent event) {
         var damaged = event.getEntity();
         if (damaged instanceof Player) {
-            var humans = damaged.level.getEntities(damaged, damaged.getBoundingBox().inflate(10), entity -> entity instanceof Human otherHuman);
+            var humans = damaged.level().getEntities(damaged, damaged.getBoundingBox().inflate(10), entity -> entity instanceof Human otherHuman);
             for (Entity otherHuman : humans) {
                 ((Human) otherHuman).isAlert = true;
             }
@@ -110,7 +94,7 @@ public class EventHandler {
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public void joinWorld(EntityJoinWorldEvent event) {
+    public void joinWorld(EntityJoinLevelEvent event) {
         Entity entity = event.getEntity();
         if (entity.hasCustomName()) {
             String tag = entity.getCustomName().getString();
@@ -147,6 +131,9 @@ public class EventHandler {
             }
         }
         if (entity instanceof Human human) {
+            if (ModList.get().isLoaded("travelersbackpack")) {
+                TravelersBackpack.apply(human);
+            }
             if (ModList.get().isLoaded("villagernames")) {
                 CollectiveVillagerNames.nameEntity(human);
             }
