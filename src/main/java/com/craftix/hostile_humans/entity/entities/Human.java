@@ -2,6 +2,7 @@ package com.craftix.hostile_humans.entity.entities;
 
 import com.craftix.hostile_humans.HostileHumans;
 import com.craftix.hostile_humans.HumanUtil;
+import com.craftix.hostile_humans.Config;
 import com.craftix.hostile_humans.entity.HumanEntity;
 import com.craftix.hostile_humans.entity.PotionRangedAttackMob;
 import com.craftix.hostile_humans.entity.ai.goal.*;
@@ -483,7 +484,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         		this.eat(foodproperties.getNutrition(), foodproperties.getSaturationModifier());
         	}
         	
-        	if (this.getTarget() != null) {
+        	if (this.getTarget() != null && this.timesHealedInCombat < Config.healUsesPerCombat.get()) {
         		timesHealedInCombat++;
         	}
         }
@@ -637,9 +638,14 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         super.tick();
         sanityClearPendingDrinkItem();
         if (this.lookForChestCooldown > 0) this.lookForChestCooldown--;
-        if (this.getTarget() != null) ticksOutOfCombat++;
-        else if (ticksOutOfCombat > 20 * 60 * 2) timesHealedInCombat = 0;
-        else ticksOutOfCombat = 0;
+        if (this.getTarget() != null) {
+            ticksOutOfCombat = 0;
+        } else {
+            ticksOutOfCombat++;
+            if (ticksOutOfCombat > 20 * 60 * 2) {
+                timesHealedInCombat = 0;
+            }
+        }
         
         if (this.wasEyeInWater) this.ticksEyesOutOfWater = 0;
         else this.ticksEyesOutOfWater++;

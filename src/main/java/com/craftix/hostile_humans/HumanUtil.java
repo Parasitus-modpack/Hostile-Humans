@@ -108,7 +108,7 @@ public class HumanUtil {
     	if (!human.isAlive()) return false;
     	if (human.isUsingItem()) return false;
     	if (human.eatingColldown != 0) return false;
-    	if (human.timesHealedInCombat >= 4) return false;
+    	if (human.timesHealedInCombat >= Config.healUsesPerCombat.get()) return false;
     	if (human.wantsToSwim() && human.getTier() == HumanTier.LEVEL2 && !human.hasEffect(MobEffects.WATER_BREATHING)) return true;
         if (isLowHpInCombat(human)) return true;
         if (human.toAvoid != null) return false;
