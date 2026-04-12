@@ -257,22 +257,6 @@ public class HumanEntity extends HumanMobEntityData {
                     }
                 }
             }
-            inventory = humanMobEntityData.getArmorItems();
-            if (inventory != null) {
-                for (ItemStack itemstack : inventory) {
-                    if (!itemstack.isEmpty() && !EnchantmentHelper.hasVanishingCurse(itemstack)) {
-                        if (random.nextFloat() < dropChance) this.spawnAtLocation(itemstack);
-                    }
-                }
-            }
-            inventory = humanMobEntityData.getHandItems();
-            if (inventory != null) {
-                for (ItemStack itemstack : inventory) {
-                    if (!itemstack.isEmpty() && !EnchantmentHelper.hasVanishingCurse(itemstack)) {
-                        if (random.nextFloat() < dropChance) this.spawnAtLocation(itemstack);
-                    }
-                }
-            }
         }
     }
 

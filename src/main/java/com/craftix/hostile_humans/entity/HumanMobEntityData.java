@@ -14,6 +14,7 @@ import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.EquipmentSlot.Type;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.player.Player;
@@ -196,8 +197,22 @@ public class HumanMobEntityData extends TamableAnimal implements HumansDataSync 
         HumanData data = this.getData();
         if (data != null) {
             if (equipmentSlot.getType() == Type.ARMOR) {
-                data.setArmorItem(equipmentSlot.getIndex(), itemStack);
+                data.setArmorItem(equipmentSlot.getIndex(), itemStack.copy());
+            } else if (equipmentSlot == EquipmentSlot.MAINHAND) {
+                data.setHandItem(0, itemStack.copy());
+            } else if (equipmentSlot == EquipmentSlot.OFFHAND) {
+                data.setHandItem(1, itemStack.copy());
             }
+        }
+        setDataSyncNeeded();
+    }
+
+    @Override
+    public void setItemInHand(InteractionHand hand, ItemStack stack) {
+        super.setItemInHand(hand, stack);
+        HumanData data = this.getData();
+        if (data != null) {
+            data.setHandItem(hand == InteractionHand.MAIN_HAND ? 0 : 1, stack.copy());
         }
         setDataSyncNeeded();
     }

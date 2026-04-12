@@ -94,6 +94,11 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     public int onPlayerJumpCoolDown;
     public int eatingColldown;
+    @Nullable
+    private InteractionHand pendingDrinkCleanupHand;
+    private ItemStack pendingDrinkCleanupStack = ItemStack.EMPTY;
+    private ItemStack pendingDrinkCleanupRemainder = ItemStack.EMPTY;
+    private boolean pendingDrinkCleanup;
     public boolean isFleeing;
     public long lastCombatTime;
     @Nullable
@@ -361,13 +366,24 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             modifiableattributeinstance.removeModifier(USE_ITEM_SPEED_PENALTY);
             modifiableattributeinstance.addTransientModifier(USE_ITEM_SPEED_PENALTY);
         }
+        if (!this.level().isClientSide) {
+            trackPendingDrinkCleanup(hand, itemstack);
+        }
     }
 
     @Override
     public void stopUsingItem() {
+        int remainingTicks = this.getUseItemRemainingTicks();
         super.stopUsingItem();
         if (this.getAttribute(Attributes.MOVEMENT_SPEED).hasModifier(USE_ITEM_SPEED_PENALTY))
             this.getAttribute(Attributes.MOVEMENT_SPEED).removeModifier(USE_ITEM_SPEED_PENALTY);
+        if (!this.level().isClientSide && !this.pendingDrinkCleanupStack.isEmpty()) {
+            if (remainingTicks <= 1) {
+                this.pendingDrinkCleanup = true;
+            } else {
+                clearPendingDrinkCleanup();
+            }
+        }
     }
 
     @Override
@@ -458,8 +474,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     @Override
     protected void completeUsingItem() {
     	InteractionHand hand = this.getUsedItemHand();
-    	Item item = this.getItemInHand(this.getUsedItemHand()).getItem();
-    	boolean hasCraftingRemainingItem = item.hasCraftingRemainingItem();
+        EquipmentSlot handSlot = hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND;
+        ItemStack usedStack = this.getItemInHand(hand).copy();
 //          System.out.println("release "+hand+" "+this.useItem+" "+this.isUsingItem()+" "+this.getItemInHand(this.getUsedItemHand()));
         if (isFood(useItem)) {
         	if (useItem.getFoodProperties(this) != null) {
@@ -472,15 +488,154 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         	}
         }
         super.completeUsingItem();
-        //Fix for potion not clearing from the hand
-        if (!this.level().isClientSide && hasCraftingRemainingItem && this.getItemInHand(this.getUsedItemHand()).getItem() == item) {
-        	this.setItemInHand(hand, item.getCraftingRemainingItem().getDefaultInstance());
+        if (!this.level().isClientSide) {
+            ItemStack currentHandStack = this.getItemInHand(hand);
+            ItemStack remainderStack = resolveConsumedRemainder(usedStack, currentHandStack);
+
+            if (!remainderStack.isEmpty()) {
+                if (!currentHandStack.isEmpty()
+                        && (ItemStack.isSameItemSameTags(currentHandStack, usedStack)
+                        || ItemStack.isSameItemSameTags(currentHandStack, remainderStack)
+                        || usedStack.getUseAnimation() == UseAnim.DRINK)) {
+                    this.setItemSlot(handSlot, ItemStack.EMPTY);
+                    currentHandStack = ItemStack.EMPTY;
+                }
+
+                if (currentHandStack.isEmpty()) {
+                    storeConsumedRemainder(remainderStack.copy());
+                }
+            }
+
+            syncHandData(handSlot, currentHandStack);
+            clearPendingDrinkCleanup();
         }
+    }
+
+    private void trackPendingDrinkCleanup(InteractionHand hand, ItemStack stack) {
+        if (shouldTrackDrinkSanity(stack)) {
+            this.pendingDrinkCleanupHand = hand;
+            this.pendingDrinkCleanupStack = stack.copy();
+            this.pendingDrinkCleanupRemainder = resolveExpectedDrinkRemainder(stack);
+            this.pendingDrinkCleanup = false;
+        } else {
+            clearPendingDrinkCleanup();
+        }
+    }
+
+    private boolean shouldTrackDrinkSanity(ItemStack stack) {
+        return !stack.isEmpty()
+                && stack.getUseAnimation() == UseAnim.DRINK;
+    }
+
+    private void clearPendingDrinkCleanup() {
+        this.pendingDrinkCleanupHand = null;
+        this.pendingDrinkCleanupStack = ItemStack.EMPTY;
+        this.pendingDrinkCleanupRemainder = ItemStack.EMPTY;
+        this.pendingDrinkCleanup = false;
+    }
+
+    private void sanityClearPendingDrinkItem() {
+        if (this.level().isClientSide || !this.pendingDrinkCleanup || this.pendingDrinkCleanupHand == null || this.isUsingItem()) {
+            return;
+        }
+
+        ItemStack currentHandStack = this.getItemInHand(this.pendingDrinkCleanupHand);
+        if (currentHandStack.isEmpty()) {
+            clearPendingDrinkCleanup();
+            return;
+        }
+
+        if (ItemStack.isSameItemSameTags(currentHandStack, this.pendingDrinkCleanupStack)
+                || (!this.pendingDrinkCleanupRemainder.isEmpty()
+                && ItemStack.isSameItemSameTags(currentHandStack, this.pendingDrinkCleanupRemainder))) {
+            EquipmentSlot handSlot = this.pendingDrinkCleanupHand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND;
+            this.setItemSlot(handSlot, ItemStack.EMPTY);
+            storeConsumedRemainder(this.pendingDrinkCleanupRemainder.copy());
+            syncHandData(handSlot, ItemStack.EMPTY);
+        }
+
+        clearPendingDrinkCleanup();
+    }
+
+    private void storeConsumedRemainder(ItemStack remainderStack) {
+        if (remainderStack.isEmpty()) {
+            return;
+        }
+
+        if (!storeInventoryItemAnywhere(remainderStack.copy())) {
+            this.spawnAtLocation(remainderStack);
+        }
+    }
+
+    private boolean storeInventoryItemAnywhere(ItemStack stack) {
+        if (getData() == null || stack.isEmpty()) {
+            return false;
+        }
+
+        for (int i = 0; i < getData().getInventoryItemsSize(); i++) {
+            ItemStack existing = getData().getInventoryItem(i);
+            if (!existing.isEmpty() && ItemStack.isSameItemSameTags(existing, stack)
+                    && existing.getCount() < existing.getMaxStackSize()) {
+                int moved = Math.min(stack.getCount(), existing.getMaxStackSize() - existing.getCount());
+                existing.grow(moved);
+                stack.shrink(moved);
+                if (stack.isEmpty()) {
+                    return true;
+                }
+            }
+        }
+
+        for (int i = 0; i < getData().getInventoryItemsSize(); i++) {
+            if (getData().getInventoryItem(i).isEmpty()) {
+                getData().setInventoryItem(i, stack.copy());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private ItemStack resolveExpectedDrinkRemainder(ItemStack usedStack) {
+        if (usedStack.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+
+        if (usedStack.getItem().hasCraftingRemainingItem()) {
+            return usedStack.getItem().getCraftingRemainingItem().getDefaultInstance();
+        }
+
+        if (usedStack.getUseAnimation() == UseAnim.DRINK && usedStack.getItem() == Items.POTION) {
+            return Items.GLASS_BOTTLE.getDefaultInstance();
+        }
+
+        return ItemStack.EMPTY;
+    }
+
+    private ItemStack resolveConsumedRemainder(ItemStack usedStack, ItemStack currentHandStack) {
+        ItemStack expectedRemainder = resolveExpectedDrinkRemainder(usedStack);
+        if (!expectedRemainder.isEmpty()) {
+            return expectedRemainder;
+        }
+
+        if (usedStack.getUseAnimation() == UseAnim.DRINK && !currentHandStack.isEmpty()
+                && !ItemStack.isSameItemSameTags(currentHandStack, usedStack)) {
+            return currentHandStack.copy();
+        }
+
+        return ItemStack.EMPTY;
+    }
+
+    private void syncHandData(EquipmentSlot handSlot, ItemStack stack) {
+        if (getData() != null) {
+            getData().setHandItem(handSlot == EquipmentSlot.MAINHAND ? 0 : 1, stack.copy());
+        }
+        setDataSyncNeeded();
     }
 
     @Override
     public void tick() {
         super.tick();
+        sanityClearPendingDrinkItem();
         if (this.lookForChestCooldown > 0) this.lookForChestCooldown--;
         if (this.getTarget() != null) ticksOutOfCombat++;
         else if (ticksOutOfCombat > 20 * 60 * 2) timesHealedInCombat = 0;
