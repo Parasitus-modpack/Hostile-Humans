@@ -103,6 +103,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     public int eatingColldown;
     private boolean queuedPreAttackBuff;
     private boolean resolvedPreAttackBuffThisCombat;
+    private boolean resolvedFleeThisCombat;
+    private boolean shouldFleeThisCombat;
     @Nullable
     private InteractionHand pendingDrinkCleanupHand;
     private ItemStack pendingDrinkCleanupStack = ItemStack.EMPTY;
@@ -672,6 +674,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
                 timesHealedInCombat = 0;
                 queuedPreAttackBuff = false;
                 resolvedPreAttackBuffThisCombat = false;
+                resolvedFleeThisCombat = false;
+                shouldFleeThisCombat = false;
             }
         }
         
@@ -857,6 +861,14 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         this.queuedPreAttackBuff = false;
         this.eatingColldown = 5 * 20;
         startUsingItem(handSlot == EquipmentSlot.MAINHAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND);
+    }
+
+    public boolean shouldStartFleeingThisCombat() {
+        if (!resolvedFleeThisCombat) {
+            resolvedFleeThisCombat = true;
+            shouldFleeThisCombat = this.random.nextFloat() < Config.fleeChance.get();
+        }
+        return shouldFleeThisCombat;
     }
 
     private void tryEquipWeapon() {

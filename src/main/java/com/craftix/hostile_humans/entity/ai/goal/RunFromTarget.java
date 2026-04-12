@@ -6,7 +6,6 @@ import com.craftix.hostile_humans.entity.entities.Human;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
-import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
@@ -20,7 +19,6 @@ import java.util.function.Predicate;
 public class RunFromTarget extends Goal {
     protected final Human human;
     protected final float maxDist;
-    protected final PathNavigation pathNav;
     protected final Predicate<LivingEntity> avoidPredicate;
     protected final Predicate<LivingEntity> predicateOnAvoidEntity;
     private final double walkSpeedModifier;
@@ -44,7 +42,6 @@ public class RunFromTarget extends Goal {
         this.walkSpeedModifier = p_25044_;
         this.sprintSpeedModifier = p_25045_;
         this.predicateOnAvoidEntity = p_25046_;
-        this.pathNav = p_25040_.getNavigation();
         this.setFlags(EnumSet.of(Flag.MOVE));
     }
 
@@ -52,16 +49,15 @@ public class RunFromTarget extends Goal {
         if (human.getOffhandItem().is(Items.TOTEM_OF_UNDYING))
             return false;
 
-        if (String.valueOf(human.getId()).hashCode() % 100 > Config.fleeChance.get() * 100)
+        if (!HumanUtil.isLowHp(human))
             return false;
 
-        if (!HumanUtil.isLowHp(human))
+        if (!human.shouldStartFleeingThisCombat())
             return false;
 
         if (human.getTarget() != null || human.toAvoid == null || !(human.toAvoid.distanceTo(human) < 15)) {
             human.toAvoid = human.getTarget();
         }
-        human.setTarget(null);
 
         if (human.toAvoid == null) {
             return false;
@@ -84,7 +80,7 @@ public class RunFromTarget extends Goal {
         } else if (human.distanceToSqr(vec3.x, vec3.y, vec3.z) < human.toAvoid.distanceToSqr(this.human)) {
             return false;
         } else {
-            this.path = this.pathNav.createPath(vec3.x, vec3.y, vec3.z, 0);
+            this.path = this.human.getNavigation().createPath(vec3.x, vec3.y, vec3.z, 0);
             if (path != null) targetPos = vec3;
             return this.path != null;
         }
@@ -108,16 +104,18 @@ public class RunFromTarget extends Goal {
             jump = true;
         } else if (jump) {
             jump = false;
-            pathNav.stop();
+            this.human.getNavigation().stop();
             generatePathAwayFromAttacker();
-            this.pathNav.moveTo(this.path, this.walkSpeedModifier);
+            this.human.getNavigation().moveTo(this.path, this.walkSpeedModifier);
         }
 
-        return !this.pathNav.isDone();
+        return !this.human.getNavigation().isDone();
     }
 
     public void start() {
-        this.pathNav.moveTo(this.path, this.walkSpeedModifier);
+        human.isFleeing = true;
+        human.setTarget(null);
+        this.human.getNavigation().moveTo(this.path, this.walkSpeedModifier);
     }
 
     public void stop() {
@@ -132,7 +130,6 @@ public class RunFromTarget extends Goal {
         if (human.toAvoid == null) return;
         //System.out.println("tick flee");
         human.isFleeing = true;
-        human.setTarget(null);
         if (this.human.distanceToSqr(human.toAvoid) < 7 * 7) {
             this.human.getNavigation().setSpeedModifier(this.sprintSpeedModifier);
         } else {

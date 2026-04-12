@@ -217,9 +217,6 @@ public class HumanUtil {
     public static boolean isLowHp(LivingEntity human) {
         if (human.getOffhandItem().getItem() == Items.TOTEM_OF_UNDYING)
             return false;
-        
-        if (human instanceof Human huma && !huma.needsFood())
-        	return false;
 
         return human.getHealth() < human.getMaxHealth() * Config.fleeHpPercent.get();
     }
