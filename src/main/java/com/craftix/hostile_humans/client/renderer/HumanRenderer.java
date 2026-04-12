@@ -22,6 +22,7 @@ import net.minecraft.world.item.TridentItem;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.ModList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,6 +36,9 @@ public class HumanRenderer extends HumanoidMobRenderer<Human, PlayerModel<Human>
         this.addLayer(new CustomHeadLayer<>(this, context.getModelSet(), context.getItemInHandRenderer()));
         this.addLayer(new ElytraLayer<>(this, context.getModelSet()));
         this.addLayer(new BeeStingerLayer<>(this));
+        if (ModList.get().isLoaded("travelersbackpack") && ModList.get().isLoaded("curios")) {
+            this.addLayer(new HumanBackpackLayer(this));
+        }
     }
 
     @Nullable

@@ -2,7 +2,6 @@ package com.craftix.hostile_humans.event;
 
 import com.craftix.hostile_humans.compat.CollectiveVillagerNames;
 import com.craftix.hostile_humans.compat.FarmersDelight;
-import com.craftix.hostile_humans.compat.TravelersBackpack;
 import com.craftix.hostile_humans.entity.entities.Human;
 //import com.natamus.villagernames_common_forge.util.Names;
 
@@ -16,7 +15,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
@@ -65,13 +63,6 @@ public class EventHandler {
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public void onLivingDeath(LivingDeathEvent event) {
-        if (ModList.get().isLoaded("travelersbackpack") && event.getEntity() instanceof Human) {
-            TravelersBackpack.applyDeath(event);
-        }
-    }
-
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onPlace(BlockEvent.EntityPlaceEvent event) {
         var placer = event.getEntity();
         if (placer != null) {
@@ -106,10 +97,6 @@ public class EventHandler {
                         human.setItemSlot(equipmentslot, ItemStack.EMPTY);
                     }
 
-                    if (ModList.get().isLoaded("travelersbackpack")) {
-                        TravelersBackpack.apply(human);
-                    }
-
                     generateInventory(human, tag.contains("ranged"));
                     entity.setCustomName(null);
                 }
@@ -131,9 +118,6 @@ public class EventHandler {
             }
         }
         if (entity instanceof Human human) {
-            if (ModList.get().isLoaded("travelersbackpack")) {
-                TravelersBackpack.apply(human);
-            }
             if (ModList.get().isLoaded("villagernames")) {
                 CollectiveVillagerNames.nameEntity(human);
             }

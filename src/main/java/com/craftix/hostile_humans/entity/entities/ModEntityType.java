@@ -1,13 +1,11 @@
 package com.craftix.hostile_humans.entity.entities;
 
 import com.craftix.hostile_humans.HostileHumans;
-import com.craftix.hostile_humans.compat.TravelersBackpack;
 import com.craftix.hostile_humans.entity.HumanEntity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.registries.DeferredRegister;
@@ -42,9 +40,5 @@ public class ModEntityType {
         event.put(HUMAN2.get(), Human.createAttributes().build());
         event.put(ROAMER.get(), Human.createAttributes().build());
         event.put(SPAWNER_ENTITY.get(), Human.createAttributes().build());
-
-        if (ModList.get().isLoaded("travelersbackpack")) {
-            TravelersBackpack.apply();
-        }
     }
 }

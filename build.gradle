@@ -150,6 +150,10 @@ repositories {
         name = 'GeckoLib'
         url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
     }
+    maven {
+        name = "Illusive Soulworks maven"
+        url = "https://maven.theillusivec4.top/"
+    }
 }
 
 dependencies {
@@ -161,6 +165,7 @@ dependencies {
 
     // 1.20.1-compatible runtime mods
     runtimeOnly fg.deobf("curse.maven:travelers-backpack-321117:6423948")
+    runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:5.14.1+1.20.1")
     runtimeOnly fg.deobf("curse.maven:villager-names-345854:5571624")
     runtimeOnly fg.deobf("curse.maven:collective-342584:6209646")
 
@@ -173,6 +178,7 @@ dependencies {
     compileOnly "curse.maven:villager-names-345854:5571624"
     compileOnly "curse.maven:collective-342584:6209646"
     compileOnly "curse.maven:travelers-backpack-321117:6423948"
+    compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:5.14.1+1.20.1:api")
     compileOnly "curse.maven:dungeon_mobs-428883:4344582"
     compileOnly "curse.maven:farmersdelight-398521:4679315"
 

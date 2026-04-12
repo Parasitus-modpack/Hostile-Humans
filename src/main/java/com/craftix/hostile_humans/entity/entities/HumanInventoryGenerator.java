@@ -3,6 +3,7 @@ package com.craftix.hostile_humans.entity.entities;
 import com.craftix.hostile_humans.HostileHumans;
 import com.craftix.hostile_humans.HumanUtil;
 import com.craftix.hostile_humans.compat.ImmersiveArmors;
+import com.craftix.hostile_humans.compat.TravelersBackpack;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -176,6 +177,10 @@ public class HumanInventoryGenerator {
             tridentStack.enchant(Enchantments.LOYALTY, 1);
             tridentStack.enchant(Enchantments.VANISHING_CURSE, 1);
             human.setItemSlot(EquipmentSlot.MAINHAND, tridentStack);
+        }
+
+        if (ModList.get().isLoaded("travelersbackpack") && ModList.get().isLoaded("curios")) {
+            TravelersBackpack.apply(human);
         }
     }
 

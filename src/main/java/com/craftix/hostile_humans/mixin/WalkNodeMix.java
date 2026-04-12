@@ -1,7 +1,6 @@
 package com.craftix.hostile_humans.mixin;
 
 import com.craftix.hostile_humans.HumanUtil;
-import com.craftix.hostile_humans.entity.HumanEntity;
 import com.craftix.hostile_humans.entity.entities.Human;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockGetter;
@@ -30,10 +29,11 @@ public abstract class WalkNodeMix extends NodeEvaluator {
     }
 
     @Inject(method = "evaluateBlockPathType", at = @At(value = "HEAD"), cancellable = true)
-    public void injected(BlockGetter getter, boolean p_77615_, boolean p_77616_, BlockPos blockPos, BlockPathTypes pathTypes, CallbackInfoReturnable<BlockPathTypes> cir) {
+    public void injected(BlockGetter getter, BlockPos blockPos, BlockPathTypes pathTypes, CallbackInfoReturnable<BlockPathTypes> cir) {
         if (!(mob instanceof Human))
             return;
-        if (pathTypes == BlockPathTypes.DOOR_IRON_CLOSED && p_77615_ && p_77616_) {
+        WalkNodeEvaluator walkNodeEvaluator = (WalkNodeEvaluator) (Object) this;
+        if (pathTypes == BlockPathTypes.DOOR_IRON_CLOSED && walkNodeEvaluator.canOpenDoors() && walkNodeEvaluator.canPassDoors()) {
             pathTypes = BlockPathTypes.WALKABLE_DOOR;
         }
         cir.setReturnValue(pathTypes);
