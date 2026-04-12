@@ -728,8 +728,16 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         
         if (level().isClientSide || this.isSleeping()) return;
         
-        if (this.getAirSupply() <= this.getMaxAirSupply() / 8 && !shouldCatchBreath) shouldCatchBreath = true;
-        if (this.getAirSupply() == this.getMaxAirSupply() && shouldCatchBreath) shouldCatchBreath = false;
+        if (this.getAirSupply() <= this.getMaxAirSupply() / 8 && !shouldCatchBreath) {
+            shouldCatchBreath = true;
+            breathRecoveryTicks = this.getRandom().nextInt(20 * 3, 20 * 5 + 1);
+        }
+        if (shouldCatchBreath && !this.isEyeInFluid(FluidTags.WATER) && breathRecoveryTicks > 0) {
+            breathRecoveryTicks--;
+        }
+        if (shouldCatchBreath && breathRecoveryTicks <= 0 && !this.isEyeInFluid(FluidTags.WATER)) {
+            shouldCatchBreath = false;
+        }
 
         if (tickCount % 20 == 0) {
             if (hasCustomName() && getCustomName().getString().contains("give_random_gear")) {
@@ -1102,7 +1110,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     
     @Override
     public boolean isVisuallySwimming() {
-    	return super.isVisuallySwimming() || (this.prefersToFloat() && this.isEyeInFluid(FluidTags.WATER));
+    	return super.isVisuallySwimming() || (this.shouldUseWaterMovement() && this.isEyeInFluid(FluidTags.WATER));
     }
 
     public static final EntityDimensions STANDING_DIMENSIONS = EntityDimensions.scalable(0.6F, 1.8F);
@@ -1113,19 +1121,26 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
     
     public boolean shouldCatchBreath;
+    public int breathRecoveryTicks;
     public boolean prefersToFloat() {
-    	return this.getTarget() == null || this.shouldCatchBreath;
+    	return this.getTarget() == null || this.shouldCatchBreath || this.breathRecoveryTicks > 0;
     }
     protected final WaterBoundPathNavigation waterNavigation;
     protected final GroundPathNavigation groundNavigation;
     public boolean wantsToSwim() {
-    	if (prefersToFloat()) return false;
+    	if (this.shouldCatchBreath || this.breathRecoveryTicks > 0) return false;
     	LivingEntity livingentity = this.getTarget();
-    	return livingentity != null && livingentity.isEyeInFluid(FluidTags.WATER);
+        if (livingentity == null) return false;
+        if (livingentity.isEyeInFluid(FluidTags.WATER) || livingentity.isInWater()) return true;
+    	return this.isInWater() && (this.distanceTo(livingentity) < 4.0F || livingentity.getY() > this.getY() - 0.5D);
+    }
+
+    public boolean shouldUseWaterMovement() {
+        return this.isInWater() && (this.shouldCatchBreath || this.breathRecoveryTicks > 0 || this.wantsToSwim());
     }
 
     public void travel(Vec3 p_32394_) {
-       if (this.isEffectiveAi() && this.isInWater() && this.wantsToSwim()) {
+       if (this.isEffectiveAi() && this.shouldUseWaterMovement()) {
           this.moveRelative(0.01F, p_32394_);
           this.move(MoverType.SELF, this.getDeltaMovement());
           this.setDeltaMovement(this.getDeltaMovement().scale(0.9D));
@@ -1139,7 +1154,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     public void updateSwimming() {
        if (!this.level().isClientSide) {
-          if (this.isEffectiveAi() && this.isInWater() && this.wantsToSwim()) {
+          if (this.isEffectiveAi() && this.shouldUseWaterMovement()) {
              this.navigation = this.waterNavigation;
              this.setSwimming(true);
           } else {
@@ -1160,10 +1175,12 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
        public void tick() {
           LivingEntity livingentity = this.human.getTarget();
-          if (this.human.wantsToSwim() && this.human.isInWater()) {
-             if (livingentity != null && livingentity.getY() > this.human.getY()) {
-                this.human.setDeltaMovement(this.human.getDeltaMovement().add(0.0D, 0.002D, 0.0D));
-             }
+           if (this.human.shouldUseWaterMovement()) {
+              if (this.human.shouldCatchBreath) {
+                 this.human.setDeltaMovement(this.human.getDeltaMovement().add(0.0D, 0.02D, 0.0D));
+              } else if (livingentity != null && livingentity.getY() > this.human.getY()) {
+                 this.human.setDeltaMovement(this.human.getDeltaMovement().add(0.0D, 0.002D, 0.0D));
+              }
 
              if (this.operation != MoveControl.Operation.MOVE_TO || this.human.getNavigation().isDone()) {
                 this.human.setSpeed(0.0F);
