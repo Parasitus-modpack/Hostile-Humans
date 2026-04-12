@@ -74,6 +74,12 @@ import static com.craftix.hostile_humans.entity.entities.ModEntityType.ROAMER;
 public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttackMob, PotionRangedAttackMob {
 
     public static final ItemStack[] EXTRA_EDIBLE_ITEMS = new ItemStack[]{Items.GOLDEN_APPLE.getDefaultInstance(), PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.REGENERATION), PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.HEALING), PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.STRENGTH)};
+    public static final ItemStack[] PRE_ATTACK_BUFF_ITEMS = new ItemStack[]{
+            Items.GOLDEN_APPLE.getDefaultInstance(),
+            PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.STRENGTH),
+            PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.REGENERATION),
+            PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.SWIFTNESS)
+    };
 
     private static final UUID MODIFIER_UUID = UUID.fromString("7a0811af-4025-4691-ba75-2d638d4ab3f4");
 
@@ -95,6 +101,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     public int onPlayerJumpCoolDown;
     public int eatingColldown;
+    private boolean queuedPreAttackBuff;
+    private boolean resolvedPreAttackBuffThisCombat;
     @Nullable
     private InteractionHand pendingDrinkCleanupHand;
     private ItemStack pendingDrinkCleanupStack = ItemStack.EMPTY;
@@ -422,6 +430,24 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
 
     @Override
+    public void setTarget(@Nullable LivingEntity livingEntity) {
+        LivingEntity previousTarget = this.getTarget();
+        super.setTarget(livingEntity);
+
+        if (this.level().isClientSide) {
+            return;
+        }
+
+        if (livingEntity instanceof Player && previousTarget != livingEntity && !this.resolvedPreAttackBuffThisCombat) {
+            this.resolvedPreAttackBuffThisCombat = true;
+            this.queuedPreAttackBuff = this.random.nextFloat() < Config.preAttackBuffChance.get();
+        } else if (livingEntity == null && this.ticksOutOfCombat > 20 * 60 * 2) {
+            this.queuedPreAttackBuff = false;
+            this.resolvedPreAttackBuffThisCombat = false;
+        }
+    }
+
+    @Override
     public void finalizeSpawn() {
         super.finalizeSpawn();
         generateInventory(this, false);
@@ -644,6 +670,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             ticksOutOfCombat++;
             if (ticksOutOfCombat > 20 * 60 * 2) {
                 timesHealedInCombat = 0;
+                queuedPreAttackBuff = false;
+                resolvedPreAttackBuffThisCombat = false;
             }
         }
         
@@ -813,6 +841,24 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         }
     }
 
+    private void tryUsePreAttackBuff() {
+        if (!queuedPreAttackBuff || !(getTarget() instanceof Player) || isUsingItem() || !HumanUtil.isMeleeWeapon(getMainHandItem())) {
+            return;
+        }
+
+        EquipmentSlot handSlot = random.nextFloat() < 0.3f ? EquipmentSlot.OFFHAND : EquipmentSlot.MAINHAND;
+        ItemStack slotItem = this.getItemBySlot(handSlot);
+        if (!slotItem.isEmpty()) {
+            putItemAway(slotItem);
+        }
+
+        ItemStack buffItem = PRE_ATTACK_BUFF_ITEMS[random.nextInt(PRE_ATTACK_BUFF_ITEMS.length)].copy();
+        this.setItemSlot(handSlot, buffItem);
+        this.queuedPreAttackBuff = false;
+        this.eatingColldown = 5 * 20;
+        startUsingItem(handSlot == EquipmentSlot.MAINHAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND);
+    }
+
     private void tryEquipWeapon() {
 
         if (getTarget() == null && tickCount % (20 * 10) == 0) {
@@ -842,6 +888,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
                 switchingWeaponCoolDown = 3 * 20;
             }
         }
+
+        tryUsePreAttackBuff();
     }
 
     @Override

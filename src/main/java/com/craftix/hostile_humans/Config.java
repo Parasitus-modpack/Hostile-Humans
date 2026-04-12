@@ -14,6 +14,7 @@ public class Config {
     public static ForgeConfigSpec.ConfigValue<Double> fleeChance;
     public static ForgeConfigSpec.ConfigValue<Double> fleeHpPercent;
     public static ForgeConfigSpec.ConfigValue<Double> healCombatPercent;
+    public static ForgeConfigSpec.ConfigValue<Double> preAttackBuffChance;
     public static ForgeConfigSpec.ConfigValue<Integer> healUsesPerCombat;
     public static ForgeConfigSpec.ConfigValue<Integer> throwPotionsEvery;
     public static ForgeConfigSpec.ConfigValue<Boolean> runJump;
@@ -30,6 +31,7 @@ public class Config {
         fleeChance = BUILDER.comment("The chance to run away from the player during the battle").define("flee_chance", 0.3d);
         fleeHpPercent = BUILDER.comment("The % of hp to start fleeing").define("flee_hp", 0.35d);
         healCombatPercent = BUILDER.comment("The % of hp to attempt healing during combat").define("heal_combat", 0.5d);
+        preAttackBuffChance = BUILDER.comment("Chance that a human will use a pre-attack buff item once after spotting a player").define("pre_attack_buff_chance", 0.8d);
         healUsesPerCombat = BUILDER.comment("Maximum number of heal consumptions a human can use during one combat").define("heal_uses_per_combat", 2);
         throwPotionsEvery = BUILDER.comment("Throw potions every x ticks").define("throw_potions_every", 20 * 100);
         runJump = BUILDER.comment("Humans can run and jump (like a player)").define("run_jump", true);
