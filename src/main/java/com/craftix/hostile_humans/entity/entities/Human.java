@@ -19,7 +19,6 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -158,8 +157,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
         setTier(type);
         initTeam(type);
-        
-        
+
+
 
         this.moveControl = new Human.HumanMoveControl(this);
         this.setPathfindingMalus(BlockPathTypes.WATER, 0.0F);
@@ -511,7 +510,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         		FoodProperties foodproperties = useItem.getFoodProperties(this);
         		this.eat(foodproperties.getNutrition(), foodproperties.getSaturationModifier());
         	}
-        	
+
         	if (this.getTarget() != null && this.timesHealedInCombat < Config.healUsesPerCombat.get()) {
         		timesHealedInCombat++;
         	}
@@ -678,10 +677,10 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
                 shouldFleeThisCombat = false;
             }
         }
-        
+
         if (this.wasEyeInWater) this.ticksEyesOutOfWater = 0;
         else this.ticksEyesOutOfWater++;
-        
+
         if (this.level().isNight() && !this.hasDecidedToSleepTonight()) {
         	this.setSleepingThisNight(this.random.nextFloat() < .3f); //only sleep 30% of the time
         	this.setHasDecidedToSleepTonight(true);
@@ -689,7 +688,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         	this.setSleepingThisNight(false);
         	this.setHasDecidedToSleepTonight(false);
         }
-        
+
         if (this.isSleeping()) {
         	if (!this.level().isClientSide && !this.level().isNight()) {
         		this.stopSleeping();
@@ -697,7 +696,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         } else {
             if (this.prefersToFloat() && this.isInWater()) this.setPose(Pose.SWIMMING);
         }
-        
+
         //Healing
     	if (this.food.exhaustionLevel > 4.0F) {
             this.food.exhaustionLevel -= 4.0F;
@@ -724,10 +723,10 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
          } else {
             this.healCooldown = 0;
          }
-        
-        
+
+
         if (level().isClientSide || this.isSleeping()) return;
-        
+
         if (this.getAirSupply() <= this.getMaxAirSupply() / 8 && !shouldCatchBreath) {
             shouldCatchBreath = true;
             breathRecoveryTicks = this.getRandom().nextInt(20 * 3, 20 * 5 + 1);
@@ -755,7 +754,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         if (toAvoid != null || getTarget() != null) {
             lastCombatTime = tickCount;
         }
-        
+
         if (shieldUpTicks > 0) this.shieldUpTicks--;
 
         if (tickCount % 10 == 0) {
@@ -791,8 +790,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             	break;
             }
         }
-    	
-    	
+
+
     	equipWeapon((stack) -> stack.getItem() == Items.TOTEM_OF_UNDYING, EquipmentSlot.OFFHAND);
     }
 
@@ -1103,11 +1102,11 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
         this.level().addFreshEntity(thrownPotion);
     }
-    
-    
 
 
-    
+
+
+
     @Override
     public boolean isVisuallySwimming() {
     	return super.isVisuallySwimming() || (this.shouldUseWaterMovement() && this.isEyeInFluid(FluidTags.WATER));
@@ -1119,7 +1118,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     	if (p_36166_ == Pose.SWIMMING) return SWIMMING_DIMENSIONS;
     	return super.getDimensions(p_36166_);
     }
-    
+
     public boolean shouldCatchBreath;
     public int breathRecoveryTicks;
     public boolean prefersToFloat() {
@@ -1209,5 +1208,5 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
        }
     }
-    
+
 }
