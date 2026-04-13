@@ -34,9 +34,8 @@ public abstract class WalkNodeMix extends NodeEvaluator {
             return;
         WalkNodeEvaluator walkNodeEvaluator = (WalkNodeEvaluator) (Object) this;
         if (pathTypes == BlockPathTypes.DOOR_IRON_CLOSED && walkNodeEvaluator.canOpenDoors() && walkNodeEvaluator.canPassDoors()) {
-            pathTypes = BlockPathTypes.WALKABLE_DOOR;
+            cir.setReturnValue(BlockPathTypes.WALKABLE_DOOR);
         }
-        cir.setReturnValue(pathTypes);
     }
 
     @Inject(method = "getNeighbors", at = @At(value = "RETURN"), cancellable = true)

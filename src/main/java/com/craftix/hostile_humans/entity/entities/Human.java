@@ -52,6 +52,7 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.ForgeMod;
@@ -1137,6 +1138,44 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         return this.isInWater() && (this.shouldCatchBreath || this.breathRecoveryTicks > 0 || this.wantsToSwim());
     }
 
+    public boolean shouldJumpOutOfWaterToward(double wantedX, double wantedY, double wantedZ) {
+        if (!this.isInWater()) {
+            return false;
+        }
+
+        LivingEntity target = this.getTarget();
+        boolean targetLeavingWater = target != null && !target.isInWater() && target.getY() >= this.getY() - 0.5D;
+        boolean pathLeavingWater = wantedY > this.getY() + 0.6D;
+        if (!targetLeavingWater && !pathLeavingWater) {
+            return false;
+        }
+
+        double dx = wantedX - this.getX();
+        double dz = wantedZ - this.getZ();
+        double horizontalDistanceSqr = dx * dx + dz * dz;
+        if (horizontalDistanceSqr < 0.04D) {
+            return false;
+        }
+
+        double horizontalDistance = Math.sqrt(horizontalDistanceSqr);
+        double stepX = dx / horizontalDistance * 0.6D;
+        double stepZ = dz / horizontalDistance * 0.6D;
+
+        BlockPos frontPos = BlockPos.containing(this.getX() + stepX, this.getY() + 0.2D, this.getZ() + stepZ);
+        BlockPos climbPos = frontPos.above();
+        BlockPos headPos = climbPos.above();
+
+        BlockState frontState = this.level().getBlockState(frontPos);
+        BlockState climbState = this.level().getBlockState(climbPos);
+        BlockState headState = this.level().getBlockState(headPos);
+
+        boolean canStepOnto = !frontState.getCollisionShape(this.level(), frontPos).isEmpty()
+                && climbState.getCollisionShape(this.level(), climbPos).isEmpty()
+                && headState.getCollisionShape(this.level(), headPos).isEmpty();
+
+        return canStepOnto || this.horizontalCollision;
+    }
+
     public void travel(Vec3 p_32394_) {
        if (this.isEffectiveAi() && this.shouldUseWaterMovement()) {
           this.moveRelative(0.01F, p_32394_);
@@ -1171,9 +1210,13 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
           this.human = p_32433_;
        }
 
-       public void tick() {
-          LivingEntity livingentity = this.human.getTarget();
-           if (this.human.shouldUseWaterMovement()) {
+        public void tick() {
+           LivingEntity livingentity = this.human.getTarget();
+            if (this.human.shouldUseWaterMovement()) {
+              if (this.human.shouldJumpOutOfWaterToward(this.wantedX, this.wantedY, this.wantedZ)) {
+                 this.human.getJumpControl().jump();
+                 this.human.setDeltaMovement(this.human.getDeltaMovement().add(0.0D, 0.18D, 0.0D));
+              }
               if (this.human.shouldCatchBreath) {
                  this.human.setDeltaMovement(this.human.getDeltaMovement().add(0.0D, 0.02D, 0.0D));
               } else if (livingentity != null && livingentity.getY() > this.human.getY()) {

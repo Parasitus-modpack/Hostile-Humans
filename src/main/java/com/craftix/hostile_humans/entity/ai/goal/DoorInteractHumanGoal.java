@@ -13,8 +13,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ButtonBlock;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.LeverBlock;
-import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.Path;
@@ -95,6 +95,7 @@ public abstract class DoorInteractHumanGoal extends Goal {
         if (!(this.mob.getNavigation() instanceof GroundPathNavigation groundPathNavigation)) {
             return false;
         }
+
         Path path = groundPathNavigation.getPath();
         if (path != null && !path.isDone() && groundPathNavigation.canOpenDoors()) {
             for (int i = 0; i < Math.min(path.getNextNodeIndex() + 2, path.getNodeCount()); ++i) {
