@@ -1,11 +1,11 @@
 package com.craftix.hostile_humans.entity.ai.goal;
 
 import com.craftix.hostile_humans.HumanUtil;
+import com.craftix.hostile_humans.entity.entities.Human;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.goal.Goal;
-import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.level.pathfinder.Path;
@@ -19,7 +19,6 @@ import java.util.function.Predicate;
 public class AvoidCreeperGoal extends Goal {
     protected final PathfinderMob mob;
     protected final float maxDist;
-    protected final PathNavigation pathNav;
     protected final Predicate<LivingEntity> avoidPredicate;
     protected final Predicate<LivingEntity> predicateOnAvoidEntity;
     private final double walkSpeedModifier;
@@ -41,7 +40,6 @@ public class AvoidCreeperGoal extends Goal {
         this.walkSpeedModifier = p_25044_;
         this.sprintSpeedModifier = p_25045_;
         this.predicateOnAvoidEntity = p_25046_;
-        this.pathNav = p_25040_.getNavigation();
         this.setFlags(EnumSet.of(Flag.MOVE));
     }
 
@@ -76,25 +74,39 @@ public class AvoidCreeperGoal extends Goal {
             } else if (this.toAvoid.distanceToSqr(vec3.x, vec3.y, vec3.z) < this.toAvoid.distanceToSqr(this.mob)) {
                 return false;
             } else {
-                this.path = this.pathNav.createPath(vec3.x, vec3.y, vec3.z, 0);
+                this.path = this.mob.getNavigation().createPath(vec3.x, vec3.y, vec3.z, 0);
                 return this.path != null;
             }
         }
     }
 
     public boolean canContinueToUse() {
-        return !this.pathNav.isDone();
+        return !this.mob.getNavigation().isDone();
     }
 
     public void start() {
-        this.pathNav.moveTo(this.path, this.walkSpeedModifier);
+        if (this.mob instanceof Human human) {
+            human.isFleeing = true;
+            human.toAvoid = this.toAvoid;
+        }
+        this.mob.getNavigation().moveTo(this.path, this.walkSpeedModifier);
     }
 
     public void stop() {
+        if (this.mob instanceof Human human) {
+            human.isFleeing = false;
+            if (human.toAvoid == this.toAvoid) {
+                human.toAvoid = null;
+            }
+        }
         this.toAvoid = null;
     }
 
     public void tick() {
+        if (this.mob instanceof Human human) {
+            human.isFleeing = true;
+            human.toAvoid = this.toAvoid;
+        }
         mob.setTarget(null);
         if (this.mob.distanceToSqr(this.toAvoid) < 49.0D) {
             this.mob.getNavigation().setSpeedModifier(this.sprintSpeedModifier);
