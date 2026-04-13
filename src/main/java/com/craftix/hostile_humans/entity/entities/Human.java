@@ -439,7 +439,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             return;
         }
 
-        if (livingEntity instanceof Player && previousTarget != livingEntity && !this.resolvedPreAttackBuffThisCombat) {
+        if (this.getTier() == HumanTier.LEVEL2 && livingEntity instanceof Player && previousTarget != livingEntity && !this.resolvedPreAttackBuffThisCombat) {
             this.resolvedPreAttackBuffThisCombat = true;
             this.queuedPreAttackBuff = this.random.nextFloat() < Config.preAttackBuffChance.get();
         } else if (livingEntity == null && this.ticksOutOfCombat > 20 * 60 * 2) {
@@ -853,7 +853,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
 
     private void tryUsePreAttackBuff() {
-        if (!queuedPreAttackBuff || !(getTarget() instanceof Player) || isUsingItem() || !HumanUtil.isMeleeWeapon(getMainHandItem())) {
+        if (this.getTier() != HumanTier.LEVEL2 || !queuedPreAttackBuff || !(getTarget() instanceof Player) || isUsingItem() || !HumanUtil.isMeleeWeapon(getMainHandItem())) {
             return;
         }
 
