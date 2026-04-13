@@ -196,8 +196,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     public boolean hurt(@NotNull DamageSource damageSource, float amount) {
         lastCombatTime = tickCount;
 
-        if (damageSource.getEntity() instanceof Player attacker) {
-            if (getTarget() == null) setTarget(attacker);
+        if (damageSource.getEntity() instanceof LivingEntity attacker && attacker != this && this.canAttack(attacker)) {
+            setTarget(attacker);
         }
 
         if (amount > 1) {
