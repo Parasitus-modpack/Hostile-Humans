@@ -26,7 +26,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.MoveControl;
-import net.minecraft.world.entity.ai.goal.OpenDoorGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
@@ -151,10 +150,6 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         this.setPathfindingMalus(BlockPathTypes.WATER, 0.0F);
         this.setCanPickUpLoot(true);
 //        this.setCustomName(null);
-        ((GroundPathNavigation) this.getNavigation()).setCanOpenDoors(true);
-        ((GroundPathNavigation) this.getNavigation()).setCanPassDoors(true);
-        getNavigation().setMaxVisitedNodesMultiplier(50);
-
         setTier(type);
         initTeam(type);
 
@@ -164,6 +159,10 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         this.setPathfindingMalus(BlockPathTypes.WATER, 0.0F);
         this.waterNavigation = new WaterBoundPathNavigation(this, level);
         this.groundNavigation = new GroundPathNavigation(this, level);
+        this.groundNavigation.setCanOpenDoors(true);
+        this.groundNavigation.setCanPassDoors(true);
+        this.groundNavigation.setMaxVisitedNodesMultiplier(50);
+        this.navigation = this.groundNavigation;
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -231,7 +230,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
         goalSelector.addGoal(-10, new HumanFloatGoal(this));
         goalSelector.addGoal(-10, new AvoidCreeperGoal(this, 10, 1.0D, 1.2D));
-        goalSelector.addGoal(-5, new OpenDoorGoal(this, true));
+        goalSelector.addGoal(-5, new OpenDoorsGoal(this, true));
         goalSelector.addGoal(-5, new OpenFenceGoal(this, true));
         goalSelector.addGoal(-5, new OpenTrapdoorGoal(this, true));
         goalSelector.addGoal(-5, new LadderClimbGoal(this));
