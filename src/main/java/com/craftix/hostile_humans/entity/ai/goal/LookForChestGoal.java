@@ -4,13 +4,24 @@ import com.craftix.hostile_humans.Config;
 import com.craftix.hostile_humans.entity.entities.ChestExtension;
 import com.craftix.hostile_humans.entity.entities.Human;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.ChestBlock;
 
 import javax.annotation.Nullable;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class LookForChestGoal extends Goal {
+    private record ChestKey(ResourceKey<Level> dimension, BlockPos pos) {}
+
+    private static final Map<ChestKey, UUID> RESERVED_CHESTS = new HashMap<>();
+    private static final Map<ChestKey, Long> RESERVED_UNTIL = new HashMap<>();
+    private static final Map<ChestKey, Long> CHEST_COOLDOWN_UNTIL = new HashMap<>();
+
     protected final Human mob;
     private final double speedModifier;
     @Nullable
@@ -27,6 +38,7 @@ public class LookForChestGoal extends Goal {
     }
 
     public boolean canUse() {
+        cleanupExpiredState();
         if (this.mob.lookForChestCooldown > 0) {
             return false;
         } else if (this.mob.getTarget() != null || this.mob.isSleeping() || this.mob.isFleeing) {
@@ -46,7 +58,7 @@ public class LookForChestGoal extends Goal {
             for (int y = -5; y < 5; y++) {
                 for (int z = -20; z < 20; z++) {
                     BlockPos chestPos = this.mob.blockPosition().offset(x, y, z);
-                    if (this.mob.level().getBlockState(chestPos).getBlock() instanceof ChestBlock) {
+                    if (this.mob.level().getBlockState(chestPos).getBlock() instanceof ChestBlock && canClaimChest(chestPos)) {
                         this.pos = chestPos;
                         this.timer = this.mob.getRandom().nextInt(20 * 5, 20 * 15);
                         return true;
@@ -73,12 +85,14 @@ public class LookForChestGoal extends Goal {
 
     public void start() {
         this.chestOpened = false;
+        reserveChest();
     }
 
     public void stop() {
         if (this.chestOpened && this.mob.level().getBlockEntity(this.pos) instanceof ChestExtension ch) {
             ch.openersCounter().decrementOpeners(null, this.mob.level(), this.pos, this.mob.level().getBlockState(this.pos));
         }
+        releaseChest(this.timer <= 0);
         this.chestOpened = false;
         this.mob.getNavigation().stop();
         if (this.timer <= 0) {
@@ -105,5 +119,56 @@ public class LookForChestGoal extends Goal {
         } else {
             this.mob.getNavigation().moveTo(this.pos.getX(), this.pos.getY(), this.pos.getZ(), this.speedModifier);
         }
+    }
+
+    private boolean canClaimChest(BlockPos chestPos) {
+        ChestKey key = chestKey(chestPos);
+        long gameTime = this.mob.level().getGameTime();
+        Long cooldownUntil = CHEST_COOLDOWN_UNTIL.get(key);
+        if (cooldownUntil != null && cooldownUntil > gameTime) {
+            return false;
+        }
+
+        UUID reservedBy = RESERVED_CHESTS.get(key);
+        Long reservedUntil = RESERVED_UNTIL.get(key);
+        return reservedBy == null || reservedUntil == null || reservedUntil <= gameTime || reservedBy.equals(this.mob.getUUID());
+    }
+
+    private void reserveChest() {
+        if (this.pos == UNREACHABLE) {
+            return;
+        }
+
+        ChestKey key = chestKey(this.pos);
+        long reserveUntil = this.mob.level().getGameTime() + this.timer + 40L;
+        RESERVED_CHESTS.put(key, this.mob.getUUID());
+        RESERVED_UNTIL.put(key, reserveUntil);
+    }
+
+    private void releaseChest(boolean addCooldown) {
+        if (this.pos == UNREACHABLE) {
+            return;
+        }
+
+        ChestKey key = chestKey(this.pos);
+        UUID reservedBy = RESERVED_CHESTS.get(key);
+        if (reservedBy != null && reservedBy.equals(this.mob.getUUID())) {
+            RESERVED_CHESTS.remove(key);
+            RESERVED_UNTIL.remove(key);
+            if (addCooldown) {
+                CHEST_COOLDOWN_UNTIL.put(key, this.mob.level().getGameTime() + this.mob.getRandom().nextInt(20 * 60 * 3, 20 * 60 * 6));
+            }
+        }
+    }
+
+    private void cleanupExpiredState() {
+        long gameTime = this.mob.level().getGameTime();
+        RESERVED_UNTIL.entrySet().removeIf(entry -> entry.getValue() <= gameTime);
+        RESERVED_CHESTS.entrySet().removeIf(entry -> !RESERVED_UNTIL.containsKey(entry.getKey()));
+        CHEST_COOLDOWN_UNTIL.entrySet().removeIf(entry -> entry.getValue() <= gameTime);
+    }
+
+    private ChestKey chestKey(BlockPos chestPos) {
+        return new ChestKey(this.mob.level().dimension(), chestPos.immutable());
     }
 }
