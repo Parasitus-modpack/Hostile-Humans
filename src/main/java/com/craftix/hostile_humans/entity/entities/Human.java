@@ -694,7 +694,11 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         		this.stopSleeping();
         	}
         } else {
-            if (this.prefersToFloat() && this.isInWater()) this.setPose(Pose.SWIMMING);
+            if (this.shouldUseWaterMovement()) {
+                this.setPose(Pose.SWIMMING);
+            } else if (this.getPose() == Pose.SWIMMING) {
+                this.setPose(Pose.STANDING);
+            }
         }
 
         //Healing
@@ -1128,14 +1132,23 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     protected final GroundPathNavigation groundNavigation;
     public boolean wantsToSwim() {
     	if (this.shouldCatchBreath || this.breathRecoveryTicks > 0) return false;
+        if (!this.hasSwimmingClearance()) return false;
     	LivingEntity livingentity = this.getTarget();
         if (livingentity == null) return false;
         if (livingentity.isEyeInFluid(FluidTags.WATER) || livingentity.isInWater()) return true;
     	return this.isInWater() && (this.distanceTo(livingentity) < 4.0F || livingentity.getY() > this.getY() - 0.5D);
     }
 
+    public boolean hasSwimmingClearance() {
+        BlockPos feetPos = this.blockPosition();
+        BlockPos upperPos = feetPos.above();
+        return this.level().getFluidState(feetPos).is(FluidTags.WATER)
+                && this.level().getFluidState(upperPos).is(FluidTags.WATER)
+                && this.level().getBlockState(upperPos).getCollisionShape(this.level(), upperPos).isEmpty();
+    }
+
     public boolean shouldUseWaterMovement() {
-        return this.isInWater() && (this.shouldCatchBreath || this.breathRecoveryTicks > 0 || this.wantsToSwim());
+        return this.isInWater() && this.hasSwimmingClearance() && (this.prefersToFloat() || this.wantsToSwim());
     }
 
     public boolean shouldJumpOutOfWaterToward(double wantedX, double wantedY, double wantedZ) {
