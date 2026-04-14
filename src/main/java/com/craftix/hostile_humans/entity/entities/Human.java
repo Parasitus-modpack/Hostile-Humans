@@ -97,6 +97,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     public int shieldUpTicks;
     public int ticksEyesOutOfWater;
     public int switchingWeaponCoolDown;
+    public int meleeFlurryHitsRemaining;
+    public int meleeFlurryDamageTicks;
 
     public int onPlayerJumpCoolDown;
     public int eatingColldown;
@@ -293,7 +295,16 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     @Override
     public boolean doHurtTarget(Entity entityIn) {
+        float originalAttackDamage = (float) this.getAttributeValue(Attributes.ATTACK_DAMAGE);
+        if (this.meleeFlurryDamageTicks > 0) {
+            this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(Math.max(0.5D, originalAttackDamage * 0.4D));
+        }
+
         boolean result = super.doHurtTarget(entityIn);
+
+        if (this.meleeFlurryDamageTicks > 0) {
+            this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(originalAttackDamage);
+        }
 
         swing(InteractionHand.MAIN_HAND);
         return result;
@@ -934,6 +945,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
         if (this.onPlayerJumpCoolDown > 0) --this.onPlayerJumpCoolDown;
         if (this.eatingColldown > 0) --this.eatingColldown;
+        if (this.meleeFlurryDamageTicks > 0) --this.meleeFlurryDamageTicks;
 
         this.updateSwingTime();
     }

@@ -16,7 +16,12 @@ public class Config {
     public static ForgeConfigSpec.ConfigValue<Double> healCombatPercent;
     public static ForgeConfigSpec.ConfigValue<Double> chestOpenChance;
     public static ForgeConfigSpec.ConfigValue<Double> preAttackBuffChance;
+    public static ForgeConfigSpec.ConfigValue<Double> meleeFlurryChance;
     public static ForgeConfigSpec.ConfigValue<Integer> healUsesPerCombat;
+    public static ForgeConfigSpec.ConfigValue<Integer> meleeAttackCooldownMin;
+    public static ForgeConfigSpec.ConfigValue<Integer> meleeAttackCooldownMax;
+    public static ForgeConfigSpec.ConfigValue<Integer> meleeFlurryHitsMin;
+    public static ForgeConfigSpec.ConfigValue<Integer> meleeFlurryHitsMax;
     public static ForgeConfigSpec.ConfigValue<Integer> throwPotionsEvery;
     public static ForgeConfigSpec.ConfigValue<Boolean> runJump;
     public static ForgeConfigSpec.ConfigValue<Boolean> attackJump;
@@ -34,7 +39,12 @@ public class Config {
         healCombatPercent = BUILDER.comment("The % of hp to attempt healing during combat").define("heal_combat", 0.5d);
         chestOpenChance = BUILDER.comment("Chance that an idle human will decide to inspect a nearby chest when eligible").define("chest_open_chance", 0.1d);
         preAttackBuffChance = BUILDER.comment("Chance that a human will use a pre-attack buff item once after spotting a player").define("pre_attack_buff_chance", 0.05d);
+        meleeFlurryChance = BUILDER.comment("Rare chance that a human enters a short low-damage melee flurry").define("melee_flurry_chance", 0.05d);
         healUsesPerCombat = BUILDER.comment("Maximum number of heal consumptions a human can use during one combat").define("heal_uses_per_combat", 2);
+        meleeAttackCooldownMin = BUILDER.comment("Minimum melee attack cooldown in ticks").define("melee_attack_cooldown_min", 3);
+        meleeAttackCooldownMax = BUILDER.comment("Maximum melee attack cooldown in ticks").define("melee_attack_cooldown_max", 12);
+        meleeFlurryHitsMin = BUILDER.comment("Minimum number of hits in a melee flurry").define("melee_flurry_hits_min", 3);
+        meleeFlurryHitsMax = BUILDER.comment("Maximum number of hits in a melee flurry").define("melee_flurry_hits_max", 6);
         throwPotionsEvery = BUILDER.comment("Throw potions every x ticks").define("throw_potions_every", 20 * 100);
         runJump = BUILDER.comment("Humans can run and jump (like a player)").define("run_jump", true);
         attackJump = BUILDER.comment("Humans can attack and jump (melee crits)").define("attack_jump", true);

@@ -1,5 +1,6 @@
 package com.craftix.hostile_humans.entity.ai.goal;
 
+import com.craftix.hostile_humans.Config;
 import com.craftix.hostile_humans.entity.HumanEntity;
 import com.craftix.hostile_humans.entity.entities.Human;
 import net.minecraft.world.entity.LivingEntity;
@@ -172,7 +173,27 @@ public class MeleeAttackGoal extends HumanGoal {
     }
 
     protected void resetAttackCooldown() {
-        this.ticksUntilNextAttack = this.adjustedTickDelay(mob.getRandom().nextInt(5, 30));
+        if (mob instanceof Human human) {
+            if (human.meleeFlurryHitsRemaining > 0) {
+                human.meleeFlurryHitsRemaining--;
+                human.meleeFlurryDamageTicks = 2;
+                this.ticksUntilNextAttack = this.adjustedTickDelay(1);
+                return;
+            }
+
+            if (mob.getRandom().nextFloat() < Config.meleeFlurryChance.get()) {
+                int flurryMin = Math.min(Config.meleeFlurryHitsMin.get(), Config.meleeFlurryHitsMax.get());
+                int flurryMax = Math.max(Config.meleeFlurryHitsMin.get(), Config.meleeFlurryHitsMax.get());
+                human.meleeFlurryHitsRemaining = mob.getRandom().nextInt(flurryMin, flurryMax + 1) - 1;
+                human.meleeFlurryDamageTicks = 2;
+                this.ticksUntilNextAttack = this.adjustedTickDelay(1);
+                return;
+            }
+        }
+
+        int cooldownMin = Math.min(Config.meleeAttackCooldownMin.get(), Config.meleeAttackCooldownMax.get());
+        int cooldownMax = Math.max(Config.meleeAttackCooldownMin.get(), Config.meleeAttackCooldownMax.get());
+        this.ticksUntilNextAttack = this.adjustedTickDelay(mob.getRandom().nextInt(cooldownMin, cooldownMax + 1));
     }
 
     protected double getAttackReachSqr(LivingEntity livingEntity) {
