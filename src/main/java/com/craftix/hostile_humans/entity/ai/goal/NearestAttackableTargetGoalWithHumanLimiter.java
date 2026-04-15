@@ -34,6 +34,10 @@ public class NearestAttackableTargetGoalWithHumanLimiter<T extends LivingEntity>
             target1 = this.targetMob;
         }
 
+        if (target1 instanceof Player player && (player.isCreative() || player.isSpectator())) {
+            return false;
+        }
+
         if (target1 == null) {
             return false;
         } else if (!this.mob.canAttack(target1)) {
@@ -68,6 +72,10 @@ public class NearestAttackableTargetGoalWithHumanLimiter<T extends LivingEntity>
         boolean usable = super.canUse();
         if (usable) {
             if (target instanceof Player player) {
+                if (player.isCreative() || player.isSpectator()) {
+                    setTarget(null);
+                    return false;
+                }
 
                 if (isLookingAtTarget(human, target)) {
                     human.isAlert = true;

@@ -248,7 +248,6 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         goalSelector.addGoal(0, new InvestigateSoundGoal(this, 1.0F));
         goalSelector.addGoal(1, new PotionRangedAttackGoal(this, 1.0, 10, 10));
         goalSelector.addGoal(3, new RaiseShieldGoal(this));
-        goalSelector.addGoal(-30, new LookForChestGoal(this, 1.0F));
         goalSelector.addGoal(-30, new LookForBedGoal(this, 1.0F));
         if ((this.getType() == ROAMER.get())) {
             goalSelector.addGoal(8, new RandomStrollGoalFar(this, 0.65D, 15, false));
@@ -421,6 +420,10 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     @Override
     public boolean canAttack(LivingEntity entity) {
+        if (entity instanceof Player player && (player.isCreative() || player.isSpectator())) {
+            return false;
+        }
+
         if (entity instanceof Human otherHuman && otherHuman.isAlive()) {
             return !this.team.equals(otherHuman.team);
         }

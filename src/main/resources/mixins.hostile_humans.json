@@ -17,8 +17,7 @@
     "WalkNodeMix",
     "WorldGenRegionMix",
     "BlockMixin",
-    "DoorMixin",
-    "ChestBlockEnityMixin"
+    "DoorMixin"
   ],
   "client": [
     "StructureBlockRenderMix"

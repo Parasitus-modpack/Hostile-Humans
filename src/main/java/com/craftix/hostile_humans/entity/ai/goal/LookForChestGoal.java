@@ -1,6 +1,5 @@
 package com.craftix.hostile_humans.entity.ai.goal;
 
-import com.craftix.hostile_humans.Config;
 import com.craftix.hostile_humans.entity.entities.ChestExtension;
 import com.craftix.hostile_humans.entity.entities.Human;
 import net.minecraft.core.BlockPos;
@@ -28,6 +27,7 @@ public class LookForChestGoal extends Goal {
     protected BlockPos pos = UNREACHABLE;
     protected int timer = 0;
     private boolean chestOpened;
+    private static final float CHEST_OPEN_CHANCE = 0.5F;
 
     public static final BlockPos UNREACHABLE = new BlockPos(0, -9999, 0);
 
@@ -49,8 +49,8 @@ public class LookForChestGoal extends Goal {
             return true;
         }
 
-        if (this.mob.getRandom().nextFloat() >= Config.chestOpenChance.get()) {
-            this.mob.lookForChestCooldown = this.mob.getRandom().nextInt(20 * 30, 20 * 90);
+        if (this.mob.getRandom().nextFloat() >= CHEST_OPEN_CHANCE) {
+            this.mob.lookForChestCooldown = this.mob.getRandom().nextInt(20 * 15, 20 * 45);
             return false;
         }
 
@@ -67,7 +67,7 @@ public class LookForChestGoal extends Goal {
             }
         }
 
-        this.mob.lookForChestCooldown = 20 * 60 * 20;
+        this.mob.lookForChestCooldown = this.mob.getRandom().nextInt(20 * 30, 20 * 90);
         return false;
     }
 
@@ -76,8 +76,16 @@ public class LookForChestGoal extends Goal {
             return false;
         }
 
+        if (this.timer <= 0) {
+            return false;
+        }
+
+        if (this.chestOpened) {
+            return true;
+        }
+
         if (this.mob.blockPosition().distSqr(this.pos) < 5D) {
-            return this.timer > 0;
+            return true;
         }
 
         return this.mob.blockPosition().distSqr(this.pos) < 1000D;
@@ -91,7 +99,6 @@ public class LookForChestGoal extends Goal {
     public void stop() {
         if (this.chestOpened && this.mob.level().getBlockEntity(this.pos) instanceof ChestExtension ch) {
             ch.hostileHumans$setForcedOpen(false);
-            ch.openersCounter().decrementOpeners(null, this.mob.level(), this.pos, this.mob.level().getBlockState(this.pos));
         }
         releaseChest(this.timer <= 0);
         this.chestOpened = false;
@@ -102,22 +109,32 @@ public class LookForChestGoal extends Goal {
     }
 
     public void tick() {
+        if (this.chestOpened) {
+            this.mob.getNavigation().stop();
+            if (this.mob.level().getBlockEntity(this.pos) instanceof ChestExtension ch) {
+                ch.hostileHumans$setForcedOpen(true);
+            }
+
+            this.timer--;
+            if (this.timer <= 0) {
+                if (this.mob.level().getBlockEntity(this.pos) instanceof ChestExtension ch) {
+                    ch.hostileHumans$setForcedOpen(false);
+                }
+                this.chestOpened = false;
+                this.pos = UNREACHABLE;
+                this.mob.lookForChestCooldown = this.mob.getRandom().nextInt(20 * 60 * 5, 20 * 60 * 10);
+            }
+            return;
+        }
+
         if (this.mob.blockPosition().distSqr(this.pos) < 5D) {
             this.mob.getNavigation().stop();
             if (this.mob.level().getBlockEntity(this.pos) instanceof ChestExtension ch) {
-                if (!this.chestOpened) {
-                    ch.openersCounter().incrementOpeners(null, this.mob.level(), this.pos, this.mob.level().getBlockState(this.pos));
-                    ch.hostileHumans$setForcedOpen(true);
-                    this.chestOpened = true;
-                }
-                this.timer--;
-                if (this.timer <= 0) {
-                    ch.hostileHumans$setForcedOpen(false);
-                    ch.openersCounter().decrementOpeners(null, this.mob.level(), this.pos, this.mob.level().getBlockState(this.pos));
-                    this.chestOpened = false;
-                    this.pos = UNREACHABLE;
-                    this.mob.lookForChestCooldown = this.mob.getRandom().nextInt(20 * 60 * 5, 20 * 60 * 10);
-                }
+                this.chestOpened = true;
+                ch.hostileHumans$setForcedOpen(true);
+            } else {
+                this.pos = UNREACHABLE;
+                this.mob.lookForChestCooldown = this.mob.getRandom().nextInt(20 * 10, 20 * 20);
             }
         } else {
             this.mob.getNavigation().moveTo(this.pos.getX(), this.pos.getY(), this.pos.getZ(), this.speedModifier);
