@@ -16,6 +16,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 import static com.craftix.hostile_humans.HumanUtil.isLookingAtTarget;
 
+
 public class HumanEntityWalkControl extends MoveControl {
 
     int skipTicks;
@@ -104,7 +105,7 @@ public class HumanEntityWalkControl extends MoveControl {
                             this.mob.getJumpControl().jump();
                             this.operation = MoveControl.Operation.JUMPING;
 
-                            addVelocityToMobTowardsPosition(mob, human.toAvoid.getX(), human.toAvoid.getY(), human.toAvoid.getZ(), -0.8);
+                            addVelocityToMobTowardsPosition(mob, human.toAvoid.getX(), human.toAvoid.getY(), human.toAvoid.getZ(), -1.0);
                             mob.setYRot((float) Math.toDegrees(Math.atan2(mob.getDeltaMovement().z, mob.getDeltaMovement().x)) - 90);
                             //   mob.getNavigation().recomputePath();
                         }
@@ -128,8 +129,7 @@ public class HumanEntityWalkControl extends MoveControl {
 
             // simulate crit
             if (Config.attackJump.get()) {
-                if (human.meleeFlurryHitsRemaining <= 0 && human.meleeFlurryDamageTicks <= 0
-                        && human.getRandom().nextFloat() < 0.1f
+                if (human.getRandom().nextFloat() < 0.1f
                         && human.onGround()
                         && human.getTarget() != null
                         && human.getTarget().distanceTo(human) < 2
@@ -147,7 +147,7 @@ public class HumanEntityWalkControl extends MoveControl {
         }
     }
 
-    public void addVelocityToMobTowardsPosition(LivingEntity entity, double x, double y, double z, double speed) {
+    private void addVelocityToMobTowardsPosition(LivingEntity entity, double x, double y, double z, double speed) {
         double d0 = x - entity.getX();
         double d1 = y - entity.getY();
         double d2 = z - entity.getZ();

@@ -79,10 +79,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.REGENERATION),
             PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.SWIFTNESS)
     };
-    public static final ItemStack[] MID_FIGHT_BUFF_ITEMS = new ItemStack[]{
-            Items.GOLDEN_APPLE.getDefaultInstance(),
-            PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.STRONG_REGENERATION)
-    };
+        public static final ItemStack MID_FIGHT_EMERGENCY_ITEM = Items.ENCHANTED_GOLDEN_APPLE.getDefaultInstance();
 
     private static final UUID MODIFIER_UUID = UUID.fromString("7a0811af-4025-4691-ba75-2d638d4ab3f4");
 
@@ -522,7 +519,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         EquipmentSlot handSlot = hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND;
         ItemStack usedStack = this.getItemInHand(hand).copy();
 //          System.out.println("release "+hand+" "+this.useItem+" "+this.isUsingItem()+" "+this.getItemInHand(this.getUsedItemHand()));
-        if (isFood(useItem)) {
+        if (countsAsHealingItem(useItem)) {
         	if (useItem.getFoodProperties(this) != null) {
         		FoodProperties foodproperties = useItem.getFoodProperties(this);
         		this.eat(foodproperties.getNutrition(), foodproperties.getSaturationModifier());
@@ -554,6 +551,26 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             syncHandData(handSlot, currentHandStack);
             clearPendingDrinkCleanup();
         }
+    }
+
+    private boolean countsAsHealingItem(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        if (stack.is(Items.GOLDEN_APPLE) || stack.is(Items.ENCHANTED_GOLDEN_APPLE)) {
+            return true;
+        }
+
+        if (stack.getItem() instanceof PotionItem) {
+            Potion potion = PotionUtils.getPotion(stack);
+            return potion == Potions.HEALING
+                    || potion == Potions.STRONG_HEALING
+                    || potion == Potions.REGENERATION
+                    || potion == Potions.STRONG_REGENERATION;
+        }
+
+        return isFood(stack);
     }
 
     private void trackPendingDrinkCleanup(InteractionHand hand, ItemStack stack) {
@@ -909,8 +926,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             putItemAway(slotItem);
         }
 
-        ItemStack buffItem = MID_FIGHT_BUFF_ITEMS[random.nextInt(MID_FIGHT_BUFF_ITEMS.length)].copy();
-        this.setItemSlot(handSlot, buffItem);
+        this.setItemSlot(handSlot, MID_FIGHT_EMERGENCY_ITEM.copy());
         this.queuedMidFightEmergencyBuff = false;
         this.eatingColldown = 5 * 20;
         startUsingItem(InteractionHand.MAIN_HAND);
@@ -1307,9 +1323,38 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
              }
 
              super.tick();
+                 this.tryGroundCombatJumps(livingentity);
           }
 
        }
+
+         private void tryGroundCombatJumps(@Nullable LivingEntity target) {
+             if (target == null || !this.human.onGround()) {
+                 return;
+             }
+
+             if (Config.runJump.get()
+                        && !this.human.isFleeing
+                        && this.human.distanceTo(target) >= 5.0F
+                        && isLookingAtTarget(this.human, target)
+                        && !isRangedWeapon(this.human.getMainHandItem())
+                        && !isTrident(this.human.getMainHandItem())
+                        && this.human.getRandom().nextFloat() < 0.1F) {
+                 this.human.getJumpControl().jump();
+                 this.human.lookAt(target, 0, 0);
+                 this.human.getNavigation().recomputePath();
+                 return;
+             }
+
+             if (Config.attackJump.get()
+                        && this.human.meleeFlurryHitsRemaining <= 0
+                        && this.human.meleeFlurryDamageTicks <= 0
+                        && isMeleeWeapon(this.human.getMainHandItem())
+                        && this.human.distanceTo(target) < 2.0F
+                        && this.human.getRandom().nextFloat() < 0.1F) {
+                 this.human.getJumpControl().jump();
+             }
+         }
     }
 
 }
