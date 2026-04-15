@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 
 import com.craftix.hostile_humans.client.keymapping.ModKeyMapping;
 import com.craftix.hostile_humans.client.renderer.ClientRenderer;
+import com.craftix.hostile_humans.entity.loadout.HumanLoadoutManager;
 import com.craftix.hostile_humans.entity.entities.ModEntityType;
 import com.craftix.hostile_humans.entity.spawner.SpawnHandler;
 import com.craftix.hostile_humans.event.EventHandler;
@@ -63,6 +64,7 @@ public class HostileHumans {
         modEventBus.addListener(SpawnHandler::registerSpawnPlacements);
 
         forgeEventBus.addListener(ServerSetup::handleServerStartingEvent);
+        forgeEventBus.addListener(HumanLoadoutManager::addReloadListener);
 
         MinecraftForge.EVENT_BUS.register(new EventHandler());
         

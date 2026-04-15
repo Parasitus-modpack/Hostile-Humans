@@ -79,6 +79,10 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.REGENERATION),
             PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.SWIFTNESS)
     };
+    public static final ItemStack[] MID_FIGHT_BUFF_ITEMS = new ItemStack[]{
+            Items.GOLDEN_APPLE.getDefaultInstance(),
+            PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.STRONG_REGENERATION)
+    };
 
     private static final UUID MODIFIER_UUID = UUID.fromString("7a0811af-4025-4691-ba75-2d638d4ab3f4");
 
@@ -106,6 +110,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     private boolean resolvedPreAttackBuffThisCombat;
     private boolean resolvedFleeThisCombat;
     private boolean shouldFleeThisCombat;
+    private boolean queuedMidFightEmergencyBuff;
     @Nullable
     private InteractionHand pendingDrinkCleanupHand;
     private ItemStack pendingDrinkCleanupStack = ItemStack.EMPTY;
@@ -450,10 +455,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             return;
         }
 
-        if (this.getTier() == HumanTier.LEVEL2 && livingEntity instanceof Player && previousTarget != livingEntity && !this.resolvedPreAttackBuffThisCombat) {
-            this.resolvedPreAttackBuffThisCombat = true;
-            this.queuedPreAttackBuff = this.random.nextFloat() < Config.preAttackBuffChance.get();
-        } else if (livingEntity == null && this.ticksOutOfCombat > 20 * 60 * 2) {
+        if (livingEntity == null && this.ticksOutOfCombat > 20 * 60 * 2) {
             this.queuedPreAttackBuff = false;
             this.resolvedPreAttackBuffThisCombat = false;
         }
@@ -686,7 +688,13 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
                 resolvedPreAttackBuffThisCombat = false;
                 resolvedFleeThisCombat = false;
                 shouldFleeThisCombat = false;
+                queuedMidFightEmergencyBuff = false;
             }
+        }
+
+        if (!this.resolvedPreAttackBuffThisCombat && this.getTier() == HumanTier.LEVEL2 && this.getTarget() instanceof Player) {
+            this.resolvedPreAttackBuffThisCombat = true;
+            this.queuedPreAttackBuff = this.random.nextFloat() < Config.preAttackBuffChance.get();
         }
 
         if (this.wasEyeInWater) this.ticksEyesOutOfWater = 0;
@@ -775,6 +783,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         if (tickCount % 10 == 0) {
         	tryEquipTotem();
             tryEquipShield();
+            tryUseMidFightEmergencyBuff();
             tryEquipWeapon();
             tryEatingTick();
             tryEquipPotion();
@@ -872,7 +881,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             return;
         }
 
-        EquipmentSlot handSlot = random.nextFloat() < 0.3f ? EquipmentSlot.OFFHAND : EquipmentSlot.MAINHAND;
+        EquipmentSlot handSlot = EquipmentSlot.MAINHAND;
         ItemStack slotItem = this.getItemBySlot(handSlot);
         if (!slotItem.isEmpty()) {
             putItemAway(slotItem);
@@ -885,10 +894,33 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         startUsingItem(handSlot == EquipmentSlot.MAINHAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND);
     }
 
+    private void tryUseMidFightEmergencyBuff() {
+        if (this.getTier() != HumanTier.LEVEL2 || !this.queuedMidFightEmergencyBuff || this.getTarget() == null || this.isUsingItem()) {
+            return;
+        }
+
+        EquipmentSlot handSlot = EquipmentSlot.MAINHAND;
+        ItemStack slotItem = this.getItemBySlot(handSlot);
+        if (!slotItem.isEmpty()) {
+            putItemAway(slotItem);
+        }
+
+        ItemStack buffItem = MID_FIGHT_BUFF_ITEMS[random.nextInt(MID_FIGHT_BUFF_ITEMS.length)].copy();
+        this.setItemSlot(handSlot, buffItem);
+        this.queuedMidFightEmergencyBuff = false;
+        this.eatingColldown = 5 * 20;
+        startUsingItem(InteractionHand.MAIN_HAND);
+    }
+
     public boolean shouldStartFleeingThisCombat() {
         if (!resolvedFleeThisCombat) {
             resolvedFleeThisCombat = true;
-            shouldFleeThisCombat = this.random.nextFloat() < Config.fleeChance.get();
+            if (this.getTier() == HumanTier.LEVEL2 && this.random.nextFloat() < Config.midBattleBuffInsteadOfRunChance.get()) {
+                this.queuedMidFightEmergencyBuff = true;
+                shouldFleeThisCombat = false;
+            } else {
+                shouldFleeThisCombat = this.random.nextFloat() < Config.runAwayMiddleFightChance.get();
+            }
         }
         return shouldFleeThisCombat;
     }

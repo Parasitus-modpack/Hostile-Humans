@@ -12,10 +12,12 @@ public class Config {
     public static ForgeConfigSpec.ConfigValue<Integer> maxTargeting;
     public static ForgeConfigSpec.ConfigValue<Double> greetChance;
     public static ForgeConfigSpec.ConfigValue<Double> fleeChance;
+    public static ForgeConfigSpec.ConfigValue<Double> runAwayMiddleFightChance;
     public static ForgeConfigSpec.ConfigValue<Double> fleeHpPercent;
     public static ForgeConfigSpec.ConfigValue<Double> healCombatPercent;
     public static ForgeConfigSpec.ConfigValue<Double> chestOpenChance;
     public static ForgeConfigSpec.ConfigValue<Double> preAttackBuffChance;
+    public static ForgeConfigSpec.ConfigValue<Double> midBattleBuffInsteadOfRunChance;
     public static ForgeConfigSpec.ConfigValue<Double> meleeFlurryChance;
     public static ForgeConfigSpec.ConfigValue<Integer> healUsesPerCombat;
     public static ForgeConfigSpec.ConfigValue<Integer> meleeAttackCooldownMin;
@@ -35,10 +37,12 @@ public class Config {
         maxTargeting = BUILDER.comment("The max amount of humans that can attack you at the same time").define("max_targeting", 3);
         greetChance = BUILDER.comment("The chance to send a chat message to the player upon targeting them").define("greet_chance", 0.05d);
         fleeChance = BUILDER.comment("The chance to run away from the player during the battle").define("flee_chance", 0.3d);
+        runAwayMiddleFightChance = BUILDER.comment("Chance that a human chooses to run away once low health mid-fight").define("run_away_middle_fight_chance", 0.5d);
         fleeHpPercent = BUILDER.comment("The % of hp to start fleeing").define("flee_hp", 0.35d);
         healCombatPercent = BUILDER.comment("The % of hp to attempt healing during combat").define("heal_combat", 0.5d);
         chestOpenChance = BUILDER.comment("Chance that an idle human will decide to inspect a nearby chest when eligible").define("chest_open_chance", 0.1d);
         preAttackBuffChance = BUILDER.comment("Chance that a human will use a pre-attack buff item once after spotting a player").define("pre_attack_buff_chance", 0.05d);
+        midBattleBuffInsteadOfRunChance = BUILDER.comment("Chance that a tier 2 human uses a golden apple or regeneration II potion instead of fleeing mid-fight").define("mid_battle_buff_instead_of_run_chance", 0.1d);
         meleeFlurryChance = BUILDER.comment("Rare chance that a human enters a short low-damage melee flurry").define("melee_flurry_chance", 0.05d);
         healUsesPerCombat = BUILDER.comment("Maximum number of heal consumptions a human can use during one combat").define("heal_uses_per_combat", 2);
         meleeAttackCooldownMin = BUILDER.comment("Minimum melee attack cooldown in ticks").define("melee_attack_cooldown_min", 3);
