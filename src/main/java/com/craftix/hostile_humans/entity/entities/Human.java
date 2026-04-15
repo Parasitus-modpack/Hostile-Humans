@@ -300,6 +300,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     @Override
     public boolean doHurtTarget(Entity entityIn) {
+        this.resetFallDistance();
         float originalAttackDamage = (float) this.getAttributeValue(Attributes.ATTACK_DAMAGE);
         if (this.meleeFlurryDamageTicks > 0) {
             this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(Math.max(0.5D, originalAttackDamage * 0.4D));

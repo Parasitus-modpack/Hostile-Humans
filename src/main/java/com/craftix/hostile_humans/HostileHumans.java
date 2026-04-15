@@ -31,8 +31,10 @@ import com.craftix.hostile_humans.sounds.ModSoundEvents;
 import com.mojang.logging.LogUtils;
 import com.natamus.villagernames_common_forge.util.Names;
 
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -54,6 +56,7 @@ public class HostileHumans {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC, "hostile_humans.toml");
 
         modEventBus.addListener(NetworkHandler::registerNetworkHandler);
+        modEventBus.addListener(HostileHumans::buildCreativeTabContents);
 
         ModEntityType.ENTITIES.register(modEventBus);
 
@@ -76,6 +79,14 @@ public class HostileHumans {
             modEventBus.addListener(ClientSetup::new);
             modEventBus.addListener(ModKeyMapping::registerKeyMapping);
         });
+    }
+
+    private static void buildCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
+            event.accept(ModItems.HUMAN1_SPAWN_EGG);
+            event.accept(ModItems.HUMAN2_SPAWN_EGG);
+            event.accept(ModItems.ROAMER_SPAWN_EGG);
+        }
     }
 	
     public static List<String> patreonNames = new ArrayList<>();

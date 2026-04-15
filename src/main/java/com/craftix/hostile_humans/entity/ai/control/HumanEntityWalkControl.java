@@ -128,7 +128,12 @@ public class HumanEntityWalkControl extends MoveControl {
 
             // simulate crit
             if (Config.attackJump.get()) {
-                if (human.getRandom().nextFloat() < 0.1f && human.onGround() && human.getTarget() != null && human.getTarget().distanceTo(human) < 2 && HumanUtil.isMeleeWeapon(human.getMainHandItem())) {
+                if (human.meleeFlurryHitsRemaining <= 0 && human.meleeFlurryDamageTicks <= 0
+                        && human.getRandom().nextFloat() < 0.1f
+                        && human.onGround()
+                        && human.getTarget() != null
+                        && human.getTarget().distanceTo(human) < 2
+                        && HumanUtil.isMeleeWeapon(human.getMainHandItem())) {
                     this.mob.getJumpControl().jump();
                 }
             }

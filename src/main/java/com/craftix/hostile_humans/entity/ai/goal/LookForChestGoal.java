@@ -90,6 +90,7 @@ public class LookForChestGoal extends Goal {
 
     public void stop() {
         if (this.chestOpened && this.mob.level().getBlockEntity(this.pos) instanceof ChestExtension ch) {
+            ch.hostileHumans$setForcedOpen(false);
             ch.openersCounter().decrementOpeners(null, this.mob.level(), this.pos, this.mob.level().getBlockState(this.pos));
         }
         releaseChest(this.timer <= 0);
@@ -106,10 +107,12 @@ public class LookForChestGoal extends Goal {
             if (this.mob.level().getBlockEntity(this.pos) instanceof ChestExtension ch) {
                 if (!this.chestOpened) {
                     ch.openersCounter().incrementOpeners(null, this.mob.level(), this.pos, this.mob.level().getBlockState(this.pos));
+                    ch.hostileHumans$setForcedOpen(true);
                     this.chestOpened = true;
                 }
                 this.timer--;
                 if (this.timer <= 0) {
+                    ch.hostileHumans$setForcedOpen(false);
                     ch.openersCounter().decrementOpeners(null, this.mob.level(), this.pos, this.mob.level().getBlockState(this.pos));
                     this.chestOpened = false;
                     this.pos = UNREACHABLE;
@@ -169,6 +172,6 @@ public class LookForChestGoal extends Goal {
     }
 
     private ChestKey chestKey(BlockPos chestPos) {
-        return new ChestKey(this.mob.level().dimension(), chestPos.immutable());
+        return new ChestKey(this.mob.level().dimension(), new BlockPos(chestPos.getX(), chestPos.getY(), chestPos.getZ()));
     }
 }
