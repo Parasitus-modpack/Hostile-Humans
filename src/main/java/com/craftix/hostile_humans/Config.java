@@ -27,6 +27,9 @@ public class Config {
     public static ForgeConfigSpec.ConfigValue<Integer> throwPotionsEvery;
     public static ForgeConfigSpec.ConfigValue<Boolean> runJump;
     public static ForgeConfigSpec.ConfigValue<Boolean> attackJump;
+    public static ForgeConfigSpec.ConfigValue<Double> runLungeVelocity;
+    public static ForgeConfigSpec.ConfigValue<Double> runAirAcceleration;
+    public static ForgeConfigSpec.ConfigValue<Double> runMaxHorizontalSpeed;
     public static ForgeConfigSpec.ConfigValue<Boolean> patreonNames;
     public static ForgeConfigSpec.ConfigValue<Boolean> noWaystones;
     public static ForgeConfigSpec.EnumValue<SpawnerEntity.SpawnType> eventType;
@@ -52,6 +55,9 @@ public class Config {
         throwPotionsEvery = BUILDER.comment("Throw potions every x ticks").define("throw_potions_every", 20 * 100);
         runJump = BUILDER.comment("Humans can run and jump (like a player)").define("run_jump", true);
         attackJump = BUILDER.comment("Humans can attack and jump (melee crits)").define("attack_jump", true);
+        runLungeVelocity = BUILDER.comment("Forward velocity applied when humans perform a long-distance chase lunge").define("run_lunge_velocity", 0.75d);
+        runAirAcceleration = BUILDER.comment("Per-tick horizontal acceleration toward target while airborne during a lunge").define("run_air_acceleration", 0.12d);
+        runMaxHorizontalSpeed = BUILDER.comment("Maximum horizontal speed while airborne during chase lunges").define("run_max_horizontal_speed", 1.35d);
         patreonNames = BUILDER.comment("Allow names of Patreon members to show up as viable names").define("patreon_names", true);
         noWaystones = BUILDER.comment("Should waystones not load in structures even with the mod present").define("no_waystones", false);
         eventType = BUILDER.comment("Which type of battle event should occur").defineEnum("battle_event", SpawnerEntity.SpawnType.Random);

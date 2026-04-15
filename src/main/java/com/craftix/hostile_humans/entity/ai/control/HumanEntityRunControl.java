@@ -34,15 +34,18 @@ public class HumanEntityRunControl extends MoveControl {
             return;
         }
 
+        double airAccel = Config.runAirAcceleration.get();
+        double maxHorizontalSpeed = Config.runMaxHorizontalSpeed.get();
+        double lungeVelocity = Config.runLungeVelocity.get();
+
         this.mob.lookAt(target, 30.0F, 30.0F);
 
         if (this.isLunging) {
             Vec3 toTarget = new Vec3(target.getX() - this.mob.getX(), 0.0D, target.getZ() - this.mob.getZ());
             if (toTarget.lengthSqr() > 1.0E-6D) {
-                Vec3 dir = toTarget.normalize().scale(0.18D);
+                Vec3 dir = toTarget.normalize().scale(airAccel);
                 Vec3 current = this.mob.getDeltaMovement();
                 Vec3 horizontal = new Vec3(current.x + dir.x, 0.0D, current.z + dir.z);
-                double maxHorizontalSpeed = 1.8D;
                 double maxHorizontalSpeedSqr = maxHorizontalSpeed * maxHorizontalSpeed;
                 if (horizontal.lengthSqr() > maxHorizontalSpeedSqr) {
                     horizontal = horizontal.normalize().scale(maxHorizontalSpeed);
@@ -52,7 +55,7 @@ public class HumanEntityRunControl extends MoveControl {
             }
 
             this.airTicks++;
-            if (this.mob.isOnGround()) {
+            if (this.mob.onGround()) {
                 this.isLunging = false;
                 this.airTicks = 0;
                 this.mob.getNavigation().recomputePath();
@@ -60,7 +63,7 @@ public class HumanEntityRunControl extends MoveControl {
             return;
         }
 
-        if (this.mob.isOnGround() && this.lungeCooldown == 0) {
+        if (this.mob.onGround() && this.lungeCooldown == 0) {
             boolean canLunge = this.human.distanceTo(target) >= 6.0F
                     && Config.runJump.get()
                     && !HumanUtil.isRangedWeapon(this.human.getMainHandItem())
@@ -73,7 +76,7 @@ public class HumanEntityRunControl extends MoveControl {
 
                 Vec3 toTarget = new Vec3(target.getX() - this.mob.getX(), 0.0D, target.getZ() - this.mob.getZ());
                 if (toTarget.lengthSqr() > 1.0E-6D) {
-                    Vec3 dir = toTarget.normalize().scale(0.9D);
+                    Vec3 dir = toTarget.normalize().scale(lungeVelocity);
                     this.mob.setDeltaMovement(dir.x, this.mob.getDeltaMovement().y, dir.z);
                 }
 

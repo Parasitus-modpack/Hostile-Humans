@@ -81,7 +81,7 @@ public class HumanEntityWalkControl extends MoveControl {
             if (Config.attackJump.get()) {
                 LivingEntity target = this.human.getTarget();
                 if (target != null
-                        && this.mob.isOnGround()
+                        && this.mob.onGround()
                         && target.distanceTo(this.human) < 2.0F
                         && HumanUtil.isMeleeWeapon(this.human.getMainHandItem())
                         && this.human.meleeFlurryHitsRemaining <= 0
@@ -92,7 +92,7 @@ public class HumanEntityWalkControl extends MoveControl {
             }
         } else if (this.operation == MoveControl.Operation.JUMPING) {
             this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
-            if (this.mob.isOnGround()) {
+            if (this.mob.onGround()) {
                 this.operation = MoveControl.Operation.WAIT;
             }
         } else {
