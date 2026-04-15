@@ -5,6 +5,8 @@ import com.craftix.hostile_humans.HumanUtil;
 import com.craftix.hostile_humans.Config;
 import com.craftix.hostile_humans.entity.HumanEntity;
 import com.craftix.hostile_humans.entity.PotionRangedAttackMob;
+import com.craftix.hostile_humans.entity.ai.control.HumanEntityRunControl;
+import com.craftix.hostile_humans.entity.ai.control.HumanEntityWalkControl;
 import com.craftix.hostile_humans.entity.ai.goal.*;
 import com.google.common.collect.Maps;
 import net.minecraft.Util;
@@ -148,6 +150,10 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     public int timesHealedInCombat;
     //
 
+    private HumanEntityWalkControl walkControl;
+    private HumanEntityRunControl runControl;
+    private static final double RUN_THRESHOLD = 8.0D;
+
     public boolean isAlert;
 
     public Human(EntityType<? extends HumanEntity> entityType, Level level, HumanTier type) {
@@ -160,7 +166,9 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
 
 
-        this.moveControl = new Human.HumanMoveControl(this);
+    this.walkControl = new HumanEntityWalkControl(this);
+    this.runControl = new HumanEntityRunControl(this);
+    this.moveControl = this.walkControl;
         this.setPathfindingMalus(BlockPathTypes.WATER, 0.0F);
         this.waterNavigation = new WaterBoundPathNavigation(this, level);
         this.groundNavigation = new GroundPathNavigation(this, level);
@@ -696,6 +704,22 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     @Override
     public void tick() {
+        if (this.getTarget() != null) {
+            if (this.distanceTo(this.getTarget()) > RUN_THRESHOLD) {
+                if (this.moveControl != this.runControl) {
+                    this.moveControl = this.runControl;
+                }
+            } else {
+                if (this.moveControl != this.walkControl) {
+                    this.moveControl = this.walkControl;
+                }
+            }
+        } else {
+            if (this.moveControl != this.walkControl) {
+                this.moveControl = this.walkControl;
+            }
+        }
+
         super.tick();
         sanityClearPendingDrinkItem();
         if (this.lookForChestCooldown > 0) this.lookForChestCooldown--;

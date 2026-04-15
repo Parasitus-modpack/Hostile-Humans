@@ -14,40 +14,16 @@ import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-import static com.craftix.hostile_humans.HumanUtil.isLookingAtTarget;
-
-
 public class HumanEntityWalkControl extends MoveControl {
-
-    int skipTicks;
-
-    Human human;
+    private final Human human;
 
     public HumanEntityWalkControl(Mob mob) {
         super(mob);
-
-        human = (Human) mob;
+        this.human = (Human) mob;
     }
 
     @Override
     public void tick() {
-        if (skipTicks > 0) {
-            skipTicks--;
-            if (mob.getTarget() != null)
-                mob.lookAt(mob.getTarget(), 0, 0);
-            return;
-        }
-
-        if (mob.onGround() && skipTicks == 0) {
-            skipTicks = -1;
-            mob.getNavigation().timeLastRecompute = 0;
-            mob.getNavigation().recomputePath();
-
-            if (mob.getTarget() != null)
-                mob.lookAt(mob.getTarget(), 0, 0);
-            return;
-        }
-
         float f9;
         if (this.operation == MoveControl.Operation.STRAFE) {
             float f = (float) this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED);
@@ -77,81 +53,50 @@ public class HumanEntityWalkControl extends MoveControl {
             this.operation = MoveControl.Operation.WAIT;
         } else if (this.operation == MoveControl.Operation.MOVE_TO) {
             this.operation = MoveControl.Operation.WAIT;
-            double d0 = this.wantedX - this.mob.getX();
-            double d1 = this.wantedZ - this.mob.getZ();
-            double d2 = this.wantedY - this.mob.getY();
-            double d3 = d0 * d0 + d2 * d2 + d1 * d1;
-            if (d3 < 2.500000277905201E-7) {
+            double dx = this.wantedX - this.mob.getX();
+            double dz = this.wantedZ - this.mob.getZ();
+            double dy = this.wantedY - this.mob.getY();
+            double distSqr = dx * dx + dy * dy + dz * dz;
+            if (distSqr < 2.500000277905201E-7) {
                 this.mob.setZza(0.0F);
                 return;
             }
 
-            f9 = (float) (Mth.atan2(d1, d0) * 57.2957763671875) - 90.0F;
-            if (!human.isFleeing || human.onGround())
-                this.mob.setYRot(this.rotlerp(this.mob.getYRot(), f9, 90.0F));
+            f9 = (float) (Mth.atan2(dz, dx) * 57.2957763671875D) - 90.0F;
+            this.mob.setYRot(this.rotlerp(this.mob.getYRot(), f9, 30.0F));
             this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
+
             BlockPos blockpos = this.mob.blockPosition();
             BlockState blockstate = this.mob.level().getBlockState(blockpos);
             VoxelShape voxelshape = blockstate.getCollisionShape(this.mob.level(), blockpos);
-            if (d2 > (double) this.mob.getStepHeight() && d0 * d0 + d1 * d1 < (double) Math.max(1.0F, this.mob.getBbWidth()) || !voxelshape.isEmpty() && this.mob.getY() < voxelshape.max(Direction.Axis.Y) + (double) blockpos.getY() && !blockstate.is(BlockTags.DOORS) && !blockstate.is(BlockTags.FENCES)) {
+            double horizontalDistSqr = dx * dx + dz * dz;
+            if (dy > (double) this.mob.getStepHeight() && horizontalDistSqr < (double) Math.max(1.0F, this.mob.getBbWidth())
+                    || !voxelshape.isEmpty() && this.mob.getY() < voxelshape.max(Direction.Axis.Y) + (double) blockpos.getY()
+                    && !blockstate.is(BlockTags.DOORS)
+                    && !blockstate.is(BlockTags.FENCES)) {
                 this.mob.getJumpControl().jump();
                 this.operation = MoveControl.Operation.JUMPING;
             }
 
-            if (Config.runJump.get()) {
-                if (human.onPlayerJumpCoolDown == 0) {
-                    if (human.isFleeing && human.getRandom().nextFloat() < 0.1 && human.toAvoid != null) {
-                        if (mob.onGround()) {
-                            this.mob.getJumpControl().jump();
-                            this.operation = MoveControl.Operation.JUMPING;
-
-                            addVelocityToMobTowardsPosition(mob, human.toAvoid.getX(), human.toAvoid.getY(), human.toAvoid.getZ(), -1.0);
-                            mob.setYRot((float) Math.toDegrees(Math.atan2(mob.getDeltaMovement().z, mob.getDeltaMovement().x)) - 90);
-                            //   mob.getNavigation().recomputePath();
-                        }
-                    } else if (!human.isFleeing && human.getTarget() != null && mob.distanceTo(human.getTarget()) >= 5 && (isLookingAtTarget(mob, human.getTarget()))) {
-                        if (mob.onGround()) {
-                            // no jumping to player if holding ranged weapon
-                            if (!HumanUtil.isRangedWeapon(human.getMainHandItem()) && !HumanUtil.isTrident(human.getMainHandItem())) {
-                                this.mob.getJumpControl().jump();
-                                this.operation = MoveControl.Operation.JUMPING;
-
-                                addVelocityToMobTowardsPosition(mob, human.getTarget().getX(), human.getTarget().getY(), human.getTarget().getZ(), 0.8);
-                                mob.lookAt(human.getTarget(), 0, 0);
-
-                                mob.getNavigation().recomputePath();
-                                skipTicks = 1;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // simulate crit
             if (Config.attackJump.get()) {
-                if (human.getRandom().nextFloat() < 0.1f
-                        && human.onGround()
-                        && human.getTarget() != null
-                        && human.getTarget().distanceTo(human) < 2
-                        && HumanUtil.isMeleeWeapon(human.getMainHandItem())) {
+                LivingEntity target = this.human.getTarget();
+                if (target != null
+                        && this.mob.isOnGround()
+                        && target.distanceTo(this.human) < 2.0F
+                        && HumanUtil.isMeleeWeapon(this.human.getMainHandItem())
+                        && this.human.meleeFlurryHitsRemaining <= 0
+                        && this.human.meleeFlurryDamageTicks <= 0
+                        && this.human.getRandom().nextFloat() < 0.15F) {
                     this.mob.getJumpControl().jump();
                 }
             }
         } else if (this.operation == MoveControl.Operation.JUMPING) {
             this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
-            if (this.mob.onGround()) {
+            if (this.mob.isOnGround()) {
                 this.operation = MoveControl.Operation.WAIT;
             }
         } else {
             this.mob.setZza(0.0F);
         }
-    }
-
-    private void addVelocityToMobTowardsPosition(LivingEntity entity, double x, double y, double z, double speed) {
-        double d0 = x - entity.getX();
-        double d1 = y - entity.getY();
-        double d2 = z - entity.getZ();
-        double d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
-        entity.setDeltaMovement(d0 / d3 * speed, 0, d2 / d3 * speed);
     }
 }
