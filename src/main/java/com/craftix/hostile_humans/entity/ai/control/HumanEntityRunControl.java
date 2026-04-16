@@ -13,6 +13,7 @@ public class HumanEntityRunControl extends MoveControl {
     private final Human human;
     private int lungeCooldown = 0;
     private int airborneTicks = 0;
+    private int postLungeRecoveryTicks = 0;
     private boolean isLunging = false;
     private float lockedLungeYaw;
 
@@ -26,13 +27,20 @@ public class HumanEntityRunControl extends MoveControl {
     }
 
     public boolean shouldKeepControl() {
-        return this.isLunging || this.lungeCooldown > 0;
+        return this.isLunging;
+    }
+
+    public boolean shouldPreferWalkControl() {
+        return this.postLungeRecoveryTicks > 0;
     }
 
     @Override
     public void tick() {
         if (this.lungeCooldown > 0) {
             this.lungeCooldown--;
+        }
+        if (this.postLungeRecoveryTicks > 0) {
+            this.postLungeRecoveryTicks--;
         }
 
         LivingEntity target = this.human.getTarget();
@@ -65,8 +73,7 @@ public class HumanEntityRunControl extends MoveControl {
             boolean canLunge = this.human.distanceTo(target) >= 6.0F
                     && Config.runJump.get()
                     && !HumanUtil.isRangedWeapon(this.human.getMainHandItem())
-                    && !HumanUtil.isTrident(this.human.getMainHandItem())
-                    && this.mob.getNavigation().isInProgress();
+                    && !HumanUtil.isTrident(this.human.getMainHandItem());
 
             if (canLunge) {
                 this.mob.getJumpControl().jump();
@@ -89,7 +96,10 @@ public class HumanEntityRunControl extends MoveControl {
             }
         }
 
-        this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
+        float speed = this.speedModifier > 1.0E-4D
+                ? (float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED))
+                : (float) this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED);
+        this.mob.setSpeed(speed);
         this.mob.setZza(1.0F);
     }
 
@@ -99,7 +109,13 @@ public class HumanEntityRunControl extends MoveControl {
         this.isLunging = false;
         this.airborneTicks = 0;
         this.lungeCooldown = Math.max(this.lungeCooldown, 6);
+        this.postLungeRecoveryTicks = 8;
         this.operation = Operation.WAIT;
+
+        LivingEntity target = this.human.getTarget();
+        if (target != null) {
+            this.mob.getNavigation().moveTo(target, this.speedModifier);
+        }
     }
 
     private void faceTarget(LivingEntity target, float maxTurn) {

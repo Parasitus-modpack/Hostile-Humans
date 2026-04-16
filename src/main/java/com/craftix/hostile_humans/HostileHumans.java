@@ -29,7 +29,6 @@ import com.craftix.hostile_humans.item.ModItems;
 import com.craftix.hostile_humans.network.NetworkHandler;
 import com.craftix.hostile_humans.sounds.ModSoundEvents;
 import com.mojang.logging.LogUtils;
-import com.natamus.villagernames_common_forge.util.Names;
 
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.api.distmarker.Dist;
