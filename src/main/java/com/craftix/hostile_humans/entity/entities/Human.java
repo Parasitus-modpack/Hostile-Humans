@@ -705,12 +705,13 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     @Override
     public void tick() {
         if (this.getTarget() != null) {
+            boolean runningEnabled = Config.enableRunning.get();
             boolean holdingRangedWeapon = this.isHolding(HumanUtil::isRangedWeapon);
             if (this.moveControl == this.runControl && this.runControl.shouldPreferWalkControl()) {
                 this.moveControl = this.walkControl;
             }
             boolean keepRunControl = this.moveControl == this.runControl && this.runControl.shouldKeepControl();
-            if (!holdingRangedWeapon && (keepRunControl || this.distanceTo(this.getTarget()) > RUN_THRESHOLD)) {
+            if (runningEnabled && !holdingRangedWeapon && (keepRunControl || this.distanceTo(this.getTarget()) > RUN_THRESHOLD)) {
                 if (this.moveControl != this.runControl) {
                     this.moveControl = this.runControl;
                 }
@@ -1368,7 +1369,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
                   return;
               }
 
-              if (Config.runJump.get()
+              if (Config.enableRunning.get()
+                         && Config.runJump.get()
                          && !this.human.isFleeing
                          && this.human.distanceTo(target) >= 5.0F
                          && isLookingAtTarget(this.human, target)

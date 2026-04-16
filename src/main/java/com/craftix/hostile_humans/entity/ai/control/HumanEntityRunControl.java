@@ -36,6 +36,15 @@ public class HumanEntityRunControl extends MoveControl {
 
     @Override
     public void tick() {
+        if (!Config.enableRunning.get()) {
+            this.isLunging = false;
+            this.airborneTicks = 0;
+            this.postLungeRecoveryTicks = 0;
+            this.operation = Operation.WAIT;
+            this.mob.setZza(0.0F);
+            return;
+        }
+
         if (this.lungeCooldown > 0) {
             this.lungeCooldown--;
         }
