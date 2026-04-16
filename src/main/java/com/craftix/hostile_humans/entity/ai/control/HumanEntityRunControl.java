@@ -114,7 +114,7 @@ public class HumanEntityRunControl extends MoveControl {
 
         LivingEntity target = this.human.getTarget();
         if (target != null) {
-            this.mob.getNavigation().moveTo(target, this.speedModifier);
+            this.mob.getNavigation().moveTo(target, 1.0D);
         }
     }
 
