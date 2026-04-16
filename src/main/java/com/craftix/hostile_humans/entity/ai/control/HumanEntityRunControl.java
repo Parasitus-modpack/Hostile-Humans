@@ -12,13 +12,21 @@ import net.minecraft.world.phys.Vec3;
 public class HumanEntityRunControl extends MoveControl {
     private final Human human;
     private int lungeCooldown = 0;
-    private int airTicks = 0;
+    private int airborneTicks = 0;
     private boolean isLunging = false;
     private float lockedLungeYaw;
 
     public HumanEntityRunControl(Mob mob) {
         super(mob);
         this.human = (Human) mob;
+    }
+
+    public boolean isLunging() {
+        return this.isLunging;
+    }
+
+    public boolean shouldKeepControl() {
+        return this.isLunging || this.lungeCooldown > 0;
     }
 
     @Override
@@ -31,38 +39,24 @@ public class HumanEntityRunControl extends MoveControl {
         if (target == null || this.human.isFleeing) {
             this.mob.setZza(0.0F);
             this.isLunging = false;
-            this.airTicks = 0;
+            this.airborneTicks = 0;
             return;
         }
 
-        double airAccel = Config.runAirAcceleration.get();
-        double maxHorizontalSpeed = Config.runMaxHorizontalSpeed.get();
         double lungeVelocity = Config.runLungeVelocity.get();
 
         this.faceTarget(target, 45.0F);
 
         if (this.isLunging) {
-            Vec3 toTarget = new Vec3(target.getX() - this.mob.getX(), 0.0D, target.getZ() - this.mob.getZ());
-            if (toTarget.lengthSqr() > 1.0E-6D) {
-                Vec3 dir = toTarget.normalize().scale(airAccel);
-                Vec3 current = this.mob.getDeltaMovement();
-                Vec3 horizontal = new Vec3(current.x + dir.x, 0.0D, current.z + dir.z);
-                double maxHorizontalSpeedSqr = maxHorizontalSpeed * maxHorizontalSpeed;
-                if (horizontal.lengthSqr() > maxHorizontalSpeedSqr) {
-                    horizontal = horizontal.normalize().scale(maxHorizontalSpeed);
-                }
-
-                this.mob.setDeltaMovement(horizontal.x, current.y, horizontal.z);
-            }
-
             this.mob.setYRot(this.rotlerp(this.mob.getYRot(), this.lockedLungeYaw, 90.0F));
             this.mob.yBodyRot = this.mob.getYRot();
 
-            this.airTicks++;
-            if (this.mob.onGround()) {
-                this.isLunging = false;
-                this.airTicks = 0;
-                this.mob.getNavigation().recomputePath();
+            if (!this.mob.onGround()) {
+                this.airborneTicks++;
+            }
+
+            if (this.human.distanceTo(target) < 2.5F || (this.airborneTicks > 0 && this.mob.onGround())) {
+                stopLunge();
             }
             return;
         }
@@ -81,14 +75,14 @@ public class HumanEntityRunControl extends MoveControl {
                 Vec3 toTarget = new Vec3(target.getX() - this.mob.getX(), 0.0D, target.getZ() - this.mob.getZ());
                 if (toTarget.lengthSqr() > 1.0E-6D) {
                     Vec3 dir = toTarget.normalize().scale(lungeVelocity);
-                    this.mob.setDeltaMovement(dir.x, this.mob.getDeltaMovement().y, dir.z);
                     this.lockedLungeYaw = (float) (Math.toDegrees(Math.atan2(dir.z, dir.x)) - 90.0D);
                     this.mob.setYRot(this.lockedLungeYaw);
                     this.mob.yBodyRot = this.mob.getYRot();
+                    this.mob.setDeltaMovement(dir.x, Math.max(this.mob.getDeltaMovement().y, 0.42D), dir.z);
                 }
 
                 this.isLunging = true;
-                this.airTicks = 0;
+                this.airborneTicks = 0;
                 this.lungeCooldown = 12;
                 this.human.onPlayerJumpCoolDown = 6;
                 return;
@@ -97,6 +91,15 @@ public class HumanEntityRunControl extends MoveControl {
 
         this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
         this.mob.setZza(1.0F);
+    }
+
+    private void stopLunge() {
+        Vec3 current = this.mob.getDeltaMovement();
+        this.mob.setDeltaMovement(current.x * 0.2D, current.y, current.z * 0.2D);
+        this.isLunging = false;
+        this.airborneTicks = 0;
+        this.lungeCooldown = Math.max(this.lungeCooldown, 6);
+        this.operation = Operation.WAIT;
     }
 
     private void faceTarget(LivingEntity target, float maxTurn) {
