@@ -36,3 +36,12 @@ run/
 runs/junit/junit_test_args.txt
 runs/junit/junit_jvm_args.txt
 .omx
+.windsurf
+.trae
+.cursor
+.cline
+.agent
+.agents
+.continue
+.claude
+.zed

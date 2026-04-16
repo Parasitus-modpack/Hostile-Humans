@@ -39,7 +39,7 @@ public class HumanEntityRunControl extends MoveControl {
         double maxHorizontalSpeed = Config.runMaxHorizontalSpeed.get();
         double lungeVelocity = Config.runLungeVelocity.get();
 
-        this.mob.lookAt(target, 30.0F, 30.0F);
+        this.faceTarget(target, 45.0F);
 
         if (this.isLunging) {
             Vec3 toTarget = new Vec3(target.getX() - this.mob.getX(), 0.0D, target.getZ() - this.mob.getZ());
@@ -57,7 +57,6 @@ public class HumanEntityRunControl extends MoveControl {
 
             this.mob.setYRot(this.rotlerp(this.mob.getYRot(), this.lockedLungeYaw, 90.0F));
             this.mob.yBodyRot = this.mob.getYRot();
-            this.mob.lookAt(target, 30.0F, 30.0F);
 
             this.airTicks++;
             if (this.mob.onGround()) {
@@ -98,5 +97,12 @@ public class HumanEntityRunControl extends MoveControl {
 
         this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
         this.mob.setZza(1.0F);
+    }
+
+    private void faceTarget(LivingEntity target, float maxTurn) {
+        float targetYaw = (float) (Math.toDegrees(Math.atan2(target.getZ() - this.mob.getZ(), target.getX() - this.mob.getX())) - 90.0D);
+        this.mob.setYRot(this.rotlerp(this.mob.getYRot(), targetYaw, maxTurn));
+        this.mob.yBodyRot = this.mob.getYRot();
+        this.mob.lookAt(target, 30.0F, 30.0F);
     }
 }
