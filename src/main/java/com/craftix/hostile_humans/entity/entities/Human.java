@@ -1353,30 +1353,47 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
        }
 
          private void tryGroundCombatJumps(@Nullable LivingEntity target) {
-             if (target == null || !this.human.onGround()) {
-                 return;
-             }
+              if (target == null || !this.human.onGround()) {
+                  return;
+              }
 
-             if (Config.runJump.get()
-                        && !this.human.isFleeing
-                        && this.human.distanceTo(target) >= 5.0F
-                        && isLookingAtTarget(this.human, target)
-                        && !isRangedWeapon(this.human.getMainHandItem())
-                        && !isTrident(this.human.getMainHandItem())
-                        && this.human.getRandom().nextFloat() < 0.1F) {
+              if (Config.runJump.get()
+                         && !this.human.isFleeing
+                         && this.human.distanceTo(target) >= 5.0F
+                         && isLookingAtTarget(this.human, target)
+                         && !isRangedWeapon(this.human.getMainHandItem())
+                         && !isTrident(this.human.getMainHandItem())
+                         && this.human.getRandom().nextFloat() < 0.1F) {
                  this.human.getJumpControl().jump();
-                 this.human.lookAt(target, 0, 0);
+                 pushVisibleCombatJump(target, 0.65D, 0.16D);
                  this.human.getNavigation().recomputePath();
                  return;
-             }
+              }
 
-             if (Config.attackJump.get()
-                        && this.human.meleeFlurryHitsRemaining <= 0
-                        && this.human.meleeFlurryDamageTicks <= 0
-                        && isMeleeWeapon(this.human.getMainHandItem())
-                        && this.human.distanceTo(target) < 2.0F
-                        && this.human.getRandom().nextFloat() < 0.1F) {
+              if (Config.attackJump.get()
+                         && this.human.meleeFlurryHitsRemaining <= 0
+                         && this.human.meleeFlurryDamageTicks <= 0
+                         && isMeleeWeapon(this.human.getMainHandItem())
+                         && this.human.distanceTo(target) < 2.0F
+                         && this.human.getRandom().nextFloat() < 0.1F) {
                  this.human.getJumpControl().jump();
+                 pushVisibleCombatJump(target, 0.22D, 0.12D);
+              }
+          }
+
+         private void pushVisibleCombatJump(LivingEntity target, double horizontalBoost, double verticalBoost) {
+             this.human.lookAt(target, 30.0F, 30.0F);
+             double dx = target.getX() - this.human.getX();
+             double dz = target.getZ() - this.human.getZ();
+             double horizontalLength = Math.sqrt(dx * dx + dz * dz);
+             if (horizontalLength > 1.0E-4D) {
+                 double vx = dx / horizontalLength * horizontalBoost;
+                 double vz = dz / horizontalLength * horizontalBoost;
+                 this.human.setDeltaMovement(vx, verticalBoost, vz);
+                 this.human.setYRot((float)(Mth.atan2(vz, vx) * (180.0D / Math.PI)) - 90.0F);
+                 this.human.yBodyRot = this.human.getYRot();
+             } else {
+                 this.human.setDeltaMovement(this.human.getDeltaMovement().x, verticalBoost, this.human.getDeltaMovement().z);
              }
          }
     }
