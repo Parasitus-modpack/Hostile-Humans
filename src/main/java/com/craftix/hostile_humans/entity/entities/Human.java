@@ -1372,8 +1372,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
                          && !this.human.isFleeing
                          && this.human.distanceTo(target) >= 5.0F
                          && isLookingAtTarget(this.human, target)
-                         && !isRangedWeapon(this.human.getMainHandItem())
-                         && !isTrident(this.human.getMainHandItem())
+                     && !this.human.isHolding(HumanUtil::isRangedWeapon)
+                     && !this.human.isHolding(HumanUtil::isTrident)
                          && this.human.getRandom().nextFloat() < 0.1F) {
                  this.human.getJumpControl().jump();
                  pushVisibleCombatJump(target, 0.65D, 0.16D);

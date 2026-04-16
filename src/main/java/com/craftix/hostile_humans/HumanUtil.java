@@ -85,7 +85,7 @@ public class HumanUtil {
     }
 
     public static boolean isRangedWeapon(ItemStack value) {
-        return value.is(Items.CROSSBOW) || value.is(Items.BOW);
+        return !value.isEmpty() && (value.getItem() instanceof CrossbowItem || value.getItem() instanceof BowItem);
     }
 
     public static boolean isMeleeWeapon(ItemStack value) {
