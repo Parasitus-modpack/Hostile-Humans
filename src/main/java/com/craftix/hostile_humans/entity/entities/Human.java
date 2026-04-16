@@ -705,7 +705,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     @Override
     public void tick() {
         if (this.getTarget() != null) {
-            boolean holdingRangedWeapon = HumanUtil.isRangedWeapon(this.getMainHandItem());
+            boolean holdingRangedWeapon = this.isHolding(HumanUtil::isRangedWeapon);
             if (this.moveControl == this.runControl && this.runControl.shouldPreferWalkControl()) {
                 this.moveControl = this.walkControl;
             }

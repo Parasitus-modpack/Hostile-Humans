@@ -43,6 +43,15 @@ public class HumanEntityRunControl extends MoveControl {
             this.postLungeRecoveryTicks--;
         }
 
+        if (this.human.isHolding(HumanUtil::isRangedWeapon)) {
+            this.isLunging = false;
+            this.airborneTicks = 0;
+            this.postLungeRecoveryTicks = Math.max(this.postLungeRecoveryTicks, 8);
+            this.operation = Operation.WAIT;
+            this.mob.setZza(0.0F);
+            return;
+        }
+
         LivingEntity target = this.human.getTarget();
         if (target == null || this.human.isFleeing) {
             this.mob.setZza(0.0F);
@@ -70,9 +79,9 @@ public class HumanEntityRunControl extends MoveControl {
         }
 
         if (this.mob.onGround() && this.lungeCooldown == 0) {
-            boolean canLunge = this.human.distanceTo(target) >= 6.0F
+                boolean canLunge = this.human.distanceTo(target) >= 6.0F
                     && Config.runJump.get()
-                    && !HumanUtil.isRangedWeapon(this.human.getMainHandItem())
+                    && !this.human.isHolding(HumanUtil::isRangedWeapon)
                     && !HumanUtil.isTrident(this.human.getMainHandItem());
 
             if (canLunge) {
