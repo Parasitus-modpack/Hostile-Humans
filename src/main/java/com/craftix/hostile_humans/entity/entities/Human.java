@@ -1344,10 +1344,16 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
           } else {
              if (!this.human.onGround()) {
                 this.human.setDeltaMovement(this.human.getDeltaMovement().add(0.0D, -0.008D, 0.0D));
-             }
+                if (livingentity != null) {
+                    float targetYaw = (float)(Mth.atan2(livingentity.getZ() - this.human.getZ(), livingentity.getX() - this.human.getX()) * (180.0D / Math.PI)) - 90.0F;
+                    this.human.setYRot(this.rotlerp(this.human.getYRot(), targetYaw, 90.0F));
+                    this.human.yBodyRot = this.human.getYRot();
+                    this.human.lookAt(livingentity, 30.0F, 30.0F);
+                }
+              }
 
-             super.tick();
-                 this.tryGroundCombatJumps(livingentity);
+              super.tick();
+                  this.tryGroundCombatJumps(livingentity);
           }
 
        }

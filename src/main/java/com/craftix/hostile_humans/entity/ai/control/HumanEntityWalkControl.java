@@ -92,6 +92,13 @@ public class HumanEntityWalkControl extends MoveControl {
             }
         } else if (this.operation == MoveControl.Operation.JUMPING) {
             this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
+            LivingEntity target = this.human.getTarget();
+            if (target != null) {
+                float targetYaw = (float) (Mth.atan2(target.getZ() - this.mob.getZ(), target.getX() - this.mob.getX()) * 57.2957763671875D) - 90.0F;
+                this.mob.setYRot(this.rotlerp(this.mob.getYRot(), targetYaw, 90.0F));
+                this.mob.yBodyRot = this.mob.getYRot();
+                this.mob.lookAt(target, 30.0F, 30.0F);
+            }
             if (this.mob.onGround()) {
                 this.operation = MoveControl.Operation.WAIT;
             }

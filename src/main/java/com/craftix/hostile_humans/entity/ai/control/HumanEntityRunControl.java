@@ -14,6 +14,7 @@ public class HumanEntityRunControl extends MoveControl {
     private int lungeCooldown = 0;
     private int airTicks = 0;
     private boolean isLunging = false;
+    private float lockedLungeYaw;
 
     public HumanEntityRunControl(Mob mob) {
         super(mob);
@@ -54,6 +55,10 @@ public class HumanEntityRunControl extends MoveControl {
                 this.mob.setDeltaMovement(horizontal.x, current.y, horizontal.z);
             }
 
+            this.mob.setYRot(this.rotlerp(this.mob.getYRot(), this.lockedLungeYaw, 90.0F));
+            this.mob.yBodyRot = this.mob.getYRot();
+            this.mob.lookAt(target, 30.0F, 30.0F);
+
             this.airTicks++;
             if (this.mob.onGround()) {
                 this.isLunging = false;
@@ -78,6 +83,9 @@ public class HumanEntityRunControl extends MoveControl {
                 if (toTarget.lengthSqr() > 1.0E-6D) {
                     Vec3 dir = toTarget.normalize().scale(lungeVelocity);
                     this.mob.setDeltaMovement(dir.x, this.mob.getDeltaMovement().y, dir.z);
+                    this.lockedLungeYaw = (float) (Math.toDegrees(Math.atan2(dir.z, dir.x)) - 90.0D);
+                    this.mob.setYRot(this.lockedLungeYaw);
+                    this.mob.yBodyRot = this.mob.getYRot();
                 }
 
                 this.isLunging = true;
