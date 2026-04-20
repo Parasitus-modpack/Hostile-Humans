@@ -25,6 +25,7 @@ public class Config {
     public static ForgeConfigSpec.ConfigValue<Integer> meleeFlurryHitsMin;
     public static ForgeConfigSpec.ConfigValue<Integer> meleeFlurryHitsMax;
     public static ForgeConfigSpec.ConfigValue<Integer> throwPotionsEvery;
+    public static ForgeConfigSpec.ConfigValue<Integer> roamerNaturalSpawnRoll;
     public static ForgeConfigSpec.ConfigValue<Boolean> enableRunning;
     public static ForgeConfigSpec.ConfigValue<Boolean> runJump;
     public static ForgeConfigSpec.ConfigValue<Boolean> attackJump;
@@ -56,6 +57,7 @@ public class Config {
         meleeFlurryHitsMin = BUILDER.comment("Minimum number of hits in a melee flurry").define("melee_flurry_hits_min", 3);
         meleeFlurryHitsMax = BUILDER.comment("Maximum number of hits in a melee flurry").define("melee_flurry_hits_max", 6);
         throwPotionsEvery = BUILDER.comment("Throw potions every x ticks").define("throw_potions_every", 20 * 100);
+        roamerNaturalSpawnRoll = BUILDER.comment("Natural roamer spawn roll: 1 = always pass (very high spawn for testing), 200 = old default rarity").defineInRange("roamer_natural_spawn_roll", 1, 1, 10000);
         enableRunning = BUILDER.comment("Enable run behavior (run control, sprint chase, and run-jump lunges)").define("enable_running", false);
         runJump = BUILDER.comment("Humans can run and jump (like a player)").define("run_jump", true);
         attackJump = BUILDER.comment("Humans can attack and jump (melee crits)").define("attack_jump", true);

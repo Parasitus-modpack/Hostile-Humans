@@ -1,5 +1,6 @@
 package com.craftix.hostile_humans.entity.spawner;
 
+import com.craftix.hostile_humans.Config;
 import com.craftix.hostile_humans.entity.HumanEntity;
 import com.craftix.hostile_humans.entity.entities.Human;
 import com.craftix.hostile_humans.entity.entities.ModEntityType;
@@ -45,7 +46,8 @@ public class SpawnHandler {
     }
 
     public static boolean checkHumanSpawnRules(EntityType<? extends Human> p_33018_, ServerLevelAccessor p_33019_, MobSpawnType p_33020_, BlockPos p_33021_, RandomSource random) {
-        if (random.nextInt(200) != 0) return false;
+        int spawnRoll = Math.max(1, Config.roamerNaturalSpawnRoll.get());
+        if (random.nextInt(spawnRoll) != 0) return false;
         return isBrightEnoughToSpawn(p_33019_, p_33021_, random) && checkMobSpawnRules(p_33018_, p_33019_, p_33020_, p_33021_, random);
     }
 
