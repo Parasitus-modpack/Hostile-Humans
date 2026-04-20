@@ -5,6 +5,7 @@ import com.craftix.hostile_humans.HumanUtil;
 import com.craftix.hostile_humans.entity.entities.Human;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.phys.Vec3;
@@ -69,13 +70,18 @@ public class HumanEntityRunControl extends MoveControl {
             return;
         }
 
-        double lungeVelocity = Config.runLungeVelocity.get();
+        double lungeVelocity = Mth.clamp(Config.runLungeVelocity.get(), 0.25D, 1.10D);
 
         this.faceTarget(target, 45.0F);
 
         if (this.isLunging) {
             this.mob.setYRot(this.rotlerp(this.mob.getYRot(), this.lockedLungeYaw, 90.0F));
             this.mob.yBodyRot = this.mob.getYRot();
+
+            Vec3 current = this.mob.getDeltaMovement();
+            if (current.y > 0.65D) {
+                this.mob.setDeltaMovement(current.x, 0.65D, current.z);
+            }
 
             if (!this.mob.onGround()) {
                 this.airborneTicks++;
@@ -90,6 +96,7 @@ public class HumanEntityRunControl extends MoveControl {
         if (this.mob.onGround() && this.lungeCooldown == 0) {
                 boolean canLunge = this.human.distanceTo(target) >= 6.0F
                     && Config.runJump.get()
+                    && this.human.onPlayerJumpCoolDown <= 0
                     && !this.human.isHolding(HumanUtil::isRangedWeapon)
                     && !HumanUtil.isTrident(this.human.getMainHandItem());
 
@@ -103,7 +110,8 @@ public class HumanEntityRunControl extends MoveControl {
                     this.lockedLungeYaw = (float) (Math.toDegrees(Math.atan2(dir.z, dir.x)) - 90.0D);
                     this.mob.setYRot(this.lockedLungeYaw);
                     this.mob.yBodyRot = this.mob.getYRot();
-                    this.mob.setDeltaMovement(dir.x, Math.max(this.mob.getDeltaMovement().y, 0.42D), dir.z);
+                    double jumpY = Mth.clamp(this.mob.getDeltaMovement().y, 0.36D, 0.48D);
+                    this.mob.setDeltaMovement(dir.x, jumpY, dir.z);
                 }
 
                 this.isLunging = true;
@@ -123,7 +131,7 @@ public class HumanEntityRunControl extends MoveControl {
 
     private void stopLunge() {
         Vec3 current = this.mob.getDeltaMovement();
-        this.mob.setDeltaMovement(current.x * 0.2D, current.y, current.z * 0.2D);
+        this.mob.setDeltaMovement(current.x * 0.2D, Mth.clamp(current.y, -1.50D, 0.45D), current.z * 0.2D);
         this.isLunging = false;
         this.airborneTicks = 0;
         this.lungeCooldown = Math.max(this.lungeCooldown, 6);
@@ -143,3 +151,4 @@ public class HumanEntityRunControl extends MoveControl {
         this.mob.lookAt(target, 30.0F, 30.0F);
     }
 }
+

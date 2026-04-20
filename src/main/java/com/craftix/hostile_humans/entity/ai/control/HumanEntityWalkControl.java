@@ -82,12 +82,24 @@ public class HumanEntityWalkControl extends MoveControl {
                 LivingEntity target = this.human.getTarget();
                 if (target != null
                         && this.mob.onGround()
-                        && target.distanceTo(this.human) < 2.0F
+                        && this.human.onPlayerJumpCoolDown <= 0
+                        && target.distanceTo(this.human) < 2.2F
                         && HumanUtil.isMeleeWeapon(this.human.getMainHandItem())
                         && this.human.meleeFlurryHitsRemaining <= 0
                         && this.human.meleeFlurryDamageTicks <= 0
-                        && this.human.getRandom().nextFloat() < 0.15F) {
+                        && this.human.getRandom().nextFloat() < 0.25F) {
                     this.mob.getJumpControl().jump();
+
+                    double x = target.getX() - this.mob.getX();
+                    double z = target.getZ() - this.mob.getZ();
+                    double len = Math.sqrt(x * x + z * z);
+                    if (len > 1.0E-4D) {
+                        double boostX = x / len * 0.12D;
+                        double boostZ = z / len * 0.12D;
+                        this.mob.setDeltaMovement(this.mob.getDeltaMovement().add(boostX, 0.0D, boostZ));
+                    }
+
+                    this.human.onPlayerJumpCoolDown = 8;
                 }
             }
         } else if (this.operation == MoveControl.Operation.JUMPING) {
@@ -118,3 +130,4 @@ public class HumanEntityWalkControl extends MoveControl {
         }
     }
 }
+

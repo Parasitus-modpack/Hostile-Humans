@@ -22,6 +22,12 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 public class HumanUtil {
+    public static final int MAX_COMBAT_HEAL_USES = 2;
+
+    public static int getMaxCombatHealUses() {
+        return Math.min(MAX_COMBAT_HEAL_USES, Math.max(0, Config.healUsesPerCombat.get()));
+    }
+
     public static ItemStack[] EDIBLE_ITEMS = new ItemStack[]{Items.APPLE.getDefaultInstance(), Items.BREAD.getDefaultInstance(), Items.COOKED_PORKCHOP.getDefaultInstance(), Items.COOKED_COD.getDefaultInstance(), Items.COOKED_SALMON.getDefaultInstance(), Items.COOKIE.getDefaultInstance(), Items.MELON_SLICE.getDefaultInstance(), Items.COOKED_BEEF.getDefaultInstance(), Items.COOKED_CHICKEN.getDefaultInstance(), Items.CARROT.getDefaultInstance(), Items.POTATO.getDefaultInstance(), Items.BAKED_POTATO.getDefaultInstance(), Items.GOLDEN_CARROT.getDefaultInstance(), Items.PUMPKIN_PIE.getDefaultInstance(), Items.RABBIT.getDefaultInstance(), Items.COOKED_RABBIT.getDefaultInstance(), Items.RABBIT_STEW.getDefaultInstance(), Items.MUTTON.getDefaultInstance(), Items.COOKED_MUTTON.getDefaultInstance(), Items.BEETROOT.getDefaultInstance(), Items.DRIED_KELP.getDefaultInstance(), Items.SWEET_BERRIES.getDefaultInstance(), Items.GLOW_BERRIES.getDefaultInstance()};
     public static ItemStack[] EDIBLE_ITEMS_2 = new ItemStack[]{Items.APPLE.getDefaultInstance(), Items.BREAD.getDefaultInstance(), Items.COOKED_PORKCHOP.getDefaultInstance(), Items.COOKED_COD.getDefaultInstance(), Items.COOKED_SALMON.getDefaultInstance(), Items.COOKIE.getDefaultInstance(), Items.MELON_SLICE.getDefaultInstance(), Items.COOKED_BEEF.getDefaultInstance(), Items.COOKED_CHICKEN.getDefaultInstance(), Items.CARROT.getDefaultInstance(), Items.POTATO.getDefaultInstance(), Items.BAKED_POTATO.getDefaultInstance(), Items.GOLDEN_CARROT.getDefaultInstance(), Items.PUMPKIN_PIE.getDefaultInstance(), Items.COOKED_RABBIT.getDefaultInstance(), Items.RABBIT_STEW.getDefaultInstance(), Items.COOKED_MUTTON.getDefaultInstance(), Items.BEETROOT.getDefaultInstance(), Items.DRIED_KELP.getDefaultInstance(), Items.SWEET_BERRIES.getDefaultInstance(), Items.GLOW_BERRIES.getDefaultInstance()};
     public static String[] greetings = {
@@ -105,11 +111,14 @@ public class HumanUtil {
     }
 
     public static boolean canStartEating(Human human) {
-    	if (!human.isAlive()) return false;
-    	if (human.isUsingItem()) return false;
-    	if (human.eatingColldown != 0) return false;
-    	if (human.timesHealedInCombat >= Config.healUsesPerCombat.get()) return false;
-    	if (human.wantsToSwim() && human.getTier() == HumanTier.LEVEL2 && !human.hasEffect(MobEffects.WATER_BREATHING)) return true;
+        if (!human.isAlive()) return false;
+        if (human.isUsingItem()) return false;
+        if (human.eatingColldown != 0) return false;
+        if (human.timesHealedInCombat >= getMaxCombatHealUses()) return false;
+        if (human.wantsToSwim() && human.getTier() == HumanTier.LEVEL2 && !human.hasEffect(MobEffects.WATER_BREATHING)) {
+            double chance = Math.max(0.0D, Math.min(1.0D, Config.underwaterWaterPotionChance.get()));
+            return human.getRandom().nextDouble() < chance;
+        }
         if (isLowHpInCombat(human)) return true;
         if (human.toAvoid != null) return false;
         if (!isLowHp(human)) return false;
@@ -226,3 +235,4 @@ public class HumanUtil {
         return String.valueOf(human.getId()).hashCode() % 100 < 20;
     }
 }
+

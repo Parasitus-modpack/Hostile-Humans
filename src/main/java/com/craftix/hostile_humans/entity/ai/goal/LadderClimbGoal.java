@@ -45,7 +45,14 @@ public class LadderClimbGoal extends Goal {
                 yMotion = 0.15;
 
             //     this.entity.setDeltaMovement(this.entity.getDeltaMovement().add(0.1, 1.5, 0.1));
-            this.entity.setDeltaMovement(this.entity.getDeltaMovement().add(0, yMotion, 0));
+            double nextYVelocity = this.entity.getDeltaMovement().y + yMotion;
+            if (nextYVelocity > 0.35D) {
+                nextYVelocity = 0.35D;
+            } else if (nextYVelocity < -0.35D) {
+                nextYVelocity = -0.35D;
+            }
+            this.entity.setDeltaMovement(this.entity.getDeltaMovement().x, nextYVelocity, this.entity.getDeltaMovement().z);
         }
     }
 }
+

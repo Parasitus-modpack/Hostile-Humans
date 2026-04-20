@@ -31,6 +31,8 @@ public class Config {
     public static ForgeConfigSpec.ConfigValue<Double> runLungeVelocity;
     public static ForgeConfigSpec.ConfigValue<Double> runAirAcceleration;
     public static ForgeConfigSpec.ConfigValue<Double> runMaxHorizontalSpeed;
+    public static ForgeConfigSpec.ConfigValue<Double> underwaterWaterPotionChance;
+    public static ForgeConfigSpec.ConfigValue<Integer> postBreathNoSwimTicks;
     public static ForgeConfigSpec.ConfigValue<Boolean> patreonNames;
     public static ForgeConfigSpec.ConfigValue<Boolean> noWaystones;
     public static ForgeConfigSpec.EnumValue<SpawnerEntity.SpawnType> eventType;
@@ -60,6 +62,8 @@ public class Config {
         runLungeVelocity = BUILDER.comment("Forward velocity applied when humans perform a long-distance chase lunge").define("run_lunge_velocity", 0.75d);
         runAirAcceleration = BUILDER.comment("Per-tick horizontal acceleration toward target while airborne during a lunge").define("run_air_acceleration", 0.12d);
         runMaxHorizontalSpeed = BUILDER.comment("Maximum horizontal speed while airborne during chase lunges").define("run_max_horizontal_speed", 1.35d);
+        underwaterWaterPotionChance = BUILDER.comment("Chance [0..1] that a tier 2 human chooses a water breathing potion when underwater and lacking the effect").define("underwater_water_potion_chance", 0.15d);
+        postBreathNoSwimTicks = BUILDER.comment("Ticks a human must avoid diving back down after surfacing for air").define("post_breath_no_swim_ticks", 40);
         patreonNames = BUILDER.comment("Allow names of Patreon members to show up as viable names").define("patreon_names", true);
         noWaystones = BUILDER.comment("Should waystones not load in structures even with the mod present").define("no_waystones", false);
         eventType = BUILDER.comment("Which type of battle event should occur").defineEnum("battle_event", SpawnerEntity.SpawnType.Random);
@@ -69,3 +73,4 @@ public class Config {
         SPEC = BUILDER.build();
     }
 }
+

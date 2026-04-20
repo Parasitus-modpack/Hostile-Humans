@@ -152,7 +152,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     private HumanEntityWalkControl walkControl;
     private HumanEntityRunControl runControl;
-    private static final double RUN_THRESHOLD = 8.0D;
+    private static final double RUN_THRESHOLD = 6.0D;
 
     public boolean isAlert;
 
@@ -533,9 +533,9 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         		this.eat(foodproperties.getNutrition(), foodproperties.getSaturationModifier());
         	}
 
-        	if (this.getTarget() != null && this.timesHealedInCombat < Config.healUsesPerCombat.get()) {
-        		timesHealedInCombat++;
-        	}
+        	if (this.timesHealedInCombat < HumanUtil.getMaxCombatHealUses()) {
+                timesHealedInCombat++;
+            }
         }
         super.completeUsingItem();
         if (!this.level().isClientSide) {
@@ -801,6 +801,10 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
         if (level().isClientSide || this.isSleeping()) return;
 
+        if (this.noSwimAfterBreathTicks > 0) {
+            this.noSwimAfterBreathTicks--;
+        }
+
         if (this.getAirSupply() <= this.getMaxAirSupply() / 8 && !shouldCatchBreath) {
             shouldCatchBreath = true;
             breathRecoveryTicks = this.getRandom().nextInt(20 * 3, 20 * 5 + 1);
@@ -810,6 +814,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         }
         if (shouldCatchBreath && breathRecoveryTicks <= 0 && !this.isEyeInFluid(FluidTags.WATER)) {
             shouldCatchBreath = false;
+            this.noSwimAfterBreathTicks = Math.max(this.noSwimAfterBreathTicks, Math.max(0, Config.postBreathNoSwimTicks.get()));
         }
 
         if (tickCount % 20 == 0) {
@@ -911,7 +916,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
                 putItemAway(slotItem);
             }
 
-            if (wantsToSwim() && getTier() == HumanTier.LEVEL2 && !hasEffect(MobEffects.WATER_BREATHING)) {
+            double underwaterPotionChance = Math.max(0.0D, Math.min(1.0D, Config.underwaterWaterPotionChance.get()));
+            if (wantsToSwim() && getTier() == HumanTier.LEVEL2 && !hasEffect(MobEffects.WATER_BREATHING) && this.random.nextDouble() < underwaterPotionChance) {
                 this.setItemSlot(handSlot, PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.WATER_BREATHING));
             }
             else if (getTier() == HumanTier.LEVEL2 && random.nextFloat() < 0.5) {
@@ -1219,18 +1225,24 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     public boolean shouldCatchBreath;
     public int breathRecoveryTicks;
+    public int noSwimAfterBreathTicks;
     public boolean prefersToFloat() {
     	return this.getTarget() == null || this.shouldCatchBreath || this.breathRecoveryTicks > 0;
     }
     protected final WaterBoundPathNavigation waterNavigation;
     protected final GroundPathNavigation groundNavigation;
     public boolean wantsToSwim() {
-    	if (this.shouldCatchBreath || this.breathRecoveryTicks > 0) return false;
+        if (this.shouldCatchBreath || this.breathRecoveryTicks > 0 || this.noSwimAfterBreathTicks > 0) return false;
         if (!this.hasSwimmingClearance()) return false;
-    	LivingEntity livingentity = this.getTarget();
+        LivingEntity livingentity = this.getTarget();
         if (livingentity == null) return false;
-        if (livingentity.isEyeInFluid(FluidTags.WATER) || livingentity.isInWater()) return true;
-    	return this.isInWater() && (this.distanceTo(livingentity) < 4.0F || livingentity.getY() > this.getY() - 0.5D);
+
+        boolean targetInWater = livingentity.isEyeInFluid(FluidTags.WATER) || livingentity.isInWater();
+        if (!targetInWater) return false;
+
+        boolean targetFar = this.distanceTo(livingentity) >= 6.0F;
+        boolean targetBelow = livingentity.getY() < this.getY() - 0.5D;
+        return targetFar || targetBelow;
     }
 
     public boolean hasSwimmingClearance() {
@@ -1412,3 +1424,4 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
 
 }
+
