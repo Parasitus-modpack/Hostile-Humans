@@ -41,7 +41,8 @@ public class SpawnHandler {
     }
 
     public static boolean checkSpawnerEntityRules(EntityType<SpawnerEntity> p_33018_, ServerLevelAccessor p_33019_, MobSpawnType p_33020_, BlockPos p_33021_, RandomSource random) {
-        if (random.nextInt(200) != 0) return false;
+        int spawnRoll = Math.max(1, Config.battleEventNaturalSpawnRoll.get());
+        if (random.nextInt(spawnRoll) != 0) return false;
         return isBrightEnoughToSpawn(p_33019_, p_33021_, random) && checkMobSpawnRules(p_33018_, p_33019_, p_33020_, p_33021_, random);
     }
 
