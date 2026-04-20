@@ -951,8 +951,19 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         startUsingItem(handSlot == EquipmentSlot.MAINHAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND);
     }
 
+    private boolean hasMidFightEmergencyBuffActive() {
+        return this.hasEffect(MobEffects.ABSORPTION)
+                || this.hasEffect(MobEffects.REGENERATION)
+                || this.hasEffect(MobEffects.DAMAGE_RESISTANCE)
+                || this.hasEffect(MobEffects.FIRE_RESISTANCE);
+    }
+
     private void tryUseMidFightEmergencyBuff() {
         if (this.getTier() != HumanTier.LEVEL2 || !this.queuedMidFightEmergencyBuff || this.getTarget() == null || this.isUsingItem()) {
+            return;
+        }
+        if (this.hasMidFightEmergencyBuffActive()) {
+            this.queuedMidFightEmergencyBuff = false;
             return;
         }
 
@@ -971,7 +982,9 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     public boolean shouldStartFleeingThisCombat() {
         if (!resolvedFleeThisCombat) {
             resolvedFleeThisCombat = true;
-            if (this.getTier() == HumanTier.LEVEL2 && this.random.nextFloat() < Config.midBattleBuffInsteadOfRunChance.get()) {
+            if (this.getTier() == HumanTier.LEVEL2
+                    && !this.hasMidFightEmergencyBuffActive()
+                    && this.random.nextFloat() < Config.midBattleBuffInsteadOfRunChance.get()) {
                 this.queuedMidFightEmergencyBuff = true;
                 shouldFleeThisCombat = false;
             } else {

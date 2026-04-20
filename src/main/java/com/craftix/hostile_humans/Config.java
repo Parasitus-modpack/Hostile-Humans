@@ -48,7 +48,7 @@ public class Config {
         healCombatPercent = BUILDER.comment("The % of hp to attempt healing during combat").define("heal_combat", 0.5d);
         chestOpenChance = BUILDER.comment("Chance that an idle human will decide to inspect a nearby chest when eligible").define("chest_open_chance", 0.1d);
         preAttackBuffChance = BUILDER.comment("Chance that a human will use a pre-attack buff item once after spotting a player").define("pre_attack_buff_chance", 0.05d);
-        midBattleBuffInsteadOfRunChance = BUILDER.comment("Chance that a tier 2 human eats an enchanted golden apple instead of fleeing mid-fight").define("mid_battle_buff_instead_of_run_chance", 0.01d);
+        midBattleBuffInsteadOfRunChance = BUILDER.comment("Tier 2 only: chance [0..1] that a human eats an enchanted golden apple instead of fleeing mid-fight at low health").defineInRange("mid_battle_buff_instead_of_run_chance", 0.01d, 0.0d, 1.0d);
         meleeFlurryChance = BUILDER.comment("Rare chance that a human enters a short low-damage melee flurry").define("melee_flurry_chance", 0.05d);
         healUsesPerCombat = BUILDER.comment("Maximum number of heal consumptions a human can use during one combat").define("heal_uses_per_combat", 2);
         meleeAttackCooldownMin = BUILDER.comment("Minimum melee attack cooldown in ticks").define("melee_attack_cooldown_min", 3);
