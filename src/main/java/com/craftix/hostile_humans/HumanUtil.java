@@ -114,13 +114,14 @@ public class HumanUtil {
         if (!human.isAlive()) return false;
         if (human.isUsingItem()) return false;
         if (human.eatingColldown != 0) return false;
-        if (human.timesHealedInCombat >= getMaxCombatHealUses()) return false;
-        if (human.wantsToSwim() && human.getTier() == HumanTier.LEVEL2 && !human.hasEffect(MobEffects.WATER_BREATHING)) {
+        if (human.wantsToSwim() && !human.hasEffect(MobEffects.WATER_BREATHING)) {
+            if (human.getTier() != HumanTier.LEVEL2) return false;
             double chance = Math.max(0.0D, Math.min(1.0D, Config.underwaterWaterPotionChance.get()));
             return human.getRandom().nextDouble() < chance;
         }
+        if (human.toAvoid != null || human.isFleeing) return false;
+        if (isLowHp(human) && human.getTarget() != null && human.shouldStartFleeingThisCombat()) return false;
         if (isLowHpInCombat(human)) return true;
-        if (human.toAvoid != null) return false;
         if (!isLowHp(human)) return false;
         if (human.isUsingItem()) return false;
         if (human.getTarget() != null) return false;

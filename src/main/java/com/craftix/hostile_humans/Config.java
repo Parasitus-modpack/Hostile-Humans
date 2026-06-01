@@ -15,7 +15,6 @@ public class Config {
     public static ForgeConfigSpec.ConfigValue<Double> runAwayMiddleFightChance;
     public static ForgeConfigSpec.ConfigValue<Double> fleeHpPercent;
     public static ForgeConfigSpec.ConfigValue<Double> healCombatPercent;
-    public static ForgeConfigSpec.ConfigValue<Double> chestOpenChance;
     public static ForgeConfigSpec.ConfigValue<Double> preAttackBuffChance;
     public static ForgeConfigSpec.ConfigValue<Double> midBattleBuffInsteadOfRunChance;
     public static ForgeConfigSpec.ConfigValue<Double> meleeFlurryChance;
@@ -27,7 +26,6 @@ public class Config {
     public static ForgeConfigSpec.ConfigValue<Integer> throwPotionsEvery;
     public static ForgeConfigSpec.ConfigValue<Integer> roamerNaturalSpawnRoll;
     public static ForgeConfigSpec.ConfigValue<Integer> battleEventNaturalSpawnRoll;
-    public static ForgeConfigSpec.ConfigValue<Boolean> enableRunning;
     public static ForgeConfigSpec.ConfigValue<Boolean> runJump;
     public static ForgeConfigSpec.ConfigValue<Boolean> attackJump;
     public static ForgeConfigSpec.ConfigValue<Double> runLungeVelocity;
@@ -48,7 +46,6 @@ public class Config {
         runAwayMiddleFightChance = BUILDER.comment("Chance that a human chooses to run away once low health mid-fight").define("run_away_middle_fight_chance", 0.5d);
         fleeHpPercent = BUILDER.comment("The % of hp to start fleeing").define("flee_hp", 0.15d);
         healCombatPercent = BUILDER.comment("The % of hp to attempt healing during combat").define("heal_combat", 0.5d);
-        chestOpenChance = BUILDER.comment("Chance that an idle human will decide to inspect a nearby chest when eligible").define("chest_open_chance", 0.1d);
         preAttackBuffChance = BUILDER.comment("Chance that a human will use a pre-attack buff item once after spotting a player").define("pre_attack_buff_chance", 0.05d);
         midBattleBuffInsteadOfRunChance = BUILDER.comment("Tier 2 only: chance [0..1] that a human eats an enchanted golden apple instead of fleeing mid-fight at low health").defineInRange("mid_battle_buff_instead_of_run_chance", 0.01d, 0.0d, 1.0d);
         meleeFlurryChance = BUILDER.comment("Rare chance that a human enters a short low-damage melee flurry").define("melee_flurry_chance", 0.05d);
@@ -60,13 +57,12 @@ public class Config {
         throwPotionsEvery = BUILDER.comment("Throw potions every x ticks").define("throw_potions_every", 20 * 100);
         roamerNaturalSpawnRoll = BUILDER.comment("Natural roamer spawn roll: 1 = always pass (very high spawn for testing), 200 = old default rarity").defineInRange("roamer_natural_spawn_roll", 1, 1, 10000);
         battleEventNaturalSpawnRoll = BUILDER.comment("Natural battle-event spawner roll: 1 = always pass (very high spawn for testing), 200 = old default rarity").defineInRange("battle_event_natural_spawn_roll", 1, 1, 10000);
-        enableRunning = BUILDER.comment("Enable run behavior (run control, sprint chase, and run-jump lunges)").define("enable_running", false);
         runJump = BUILDER.comment("Humans can run and jump (like a player)").define("run_jump", true);
         attackJump = BUILDER.comment("Humans can attack and jump (melee crits)").define("attack_jump", true);
-        runLungeVelocity = BUILDER.comment("Forward velocity applied when humans perform a long-distance chase lunge").define("run_lunge_velocity", 0.75d);
+        runLungeVelocity = BUILDER.comment("Forward velocity applied when humans perform a long-distance chase lunge").define("run_lunge_velocity", 0.58d);
         runAirAcceleration = BUILDER.comment("Per-tick horizontal acceleration toward target while airborne during a lunge").define("run_air_acceleration", 0.12d);
         runMaxHorizontalSpeed = BUILDER.comment("Maximum horizontal speed while airborne during chase lunges").define("run_max_horizontal_speed", 1.35d);
-        underwaterWaterPotionChance = BUILDER.comment("Chance [0..1] that a tier 2 human chooses a water breathing potion when underwater and lacking the effect").define("underwater_water_potion_chance", 0.15d);
+        underwaterWaterPotionChance = BUILDER.comment("Chance [0..1] that a tier 2 human chooses a water breathing potion when underwater and lacking the effect").define("underwater_water_potion_chance", 0.04d);
         postBreathNoSwimTicks = BUILDER.comment("Ticks a human must avoid diving back down after surfacing for air").define("post_breath_no_swim_ticks", 40);
         patreonNames = BUILDER.comment("Allow names of Patreon members to show up as viable names").define("patreon_names", true);
         noWaystones = BUILDER.comment("Should waystones not load in structures even with the mod present").define("no_waystones", false);

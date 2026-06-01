@@ -37,7 +37,7 @@ public class HumanEntityRunControl extends MoveControl {
 
     @Override
     public void tick() {
-        if (!Config.enableRunning.get()) {
+        if (!Config.runJump.get()) {
             this.isLunging = false;
             this.airborneTicks = 0;
             this.postLungeRecoveryTicks = 0;
@@ -70,7 +70,7 @@ public class HumanEntityRunControl extends MoveControl {
             return;
         }
 
-        double lungeVelocity = Mth.clamp(Config.runLungeVelocity.get(), 0.25D, 1.10D);
+        double lungeVelocity = Mth.clamp(Config.runLungeVelocity.get(), 0.25D, 0.85D);
 
         this.faceTarget(target, 45.0F);
 
@@ -116,8 +116,8 @@ public class HumanEntityRunControl extends MoveControl {
 
                 this.isLunging = true;
                 this.airborneTicks = 0;
-                this.lungeCooldown = 12;
-                this.human.onPlayerJumpCoolDown = 6;
+                this.lungeCooldown = 18;
+                this.human.onPlayerJumpCoolDown = 14;
                 return;
             }
         }

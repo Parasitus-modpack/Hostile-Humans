@@ -36,6 +36,9 @@ public class MeleeAttackGoal extends HumanGoal {
 
     @Override
     public boolean canUse() {
+        if (this.mob.isSleeping())
+            return false;
+
         if (mob instanceof Human human && human.isFleeing)
             return false;
 
@@ -69,6 +72,9 @@ public class MeleeAttackGoal extends HumanGoal {
 
     @Override
     public boolean canContinueToUse() {
+        if (this.mob.isSleeping())
+            return false;
+
         if (mob instanceof Human human && human.isFleeing)
             return false;
 
@@ -160,7 +166,7 @@ public class MeleeAttackGoal extends HumanGoal {
     protected void checkAndPerformAttack(LivingEntity livingEntity, double attackDistance) {
 
         double distance = this.getAttackReachSqr(livingEntity);
-        if (attackDistance <= distance && this.ticksUntilNextAttack <= 0) {
+        if (!this.mob.isSleeping() && attackDistance <= distance && this.ticksUntilNextAttack <= 0) {
             this.resetAttackCooldown();
             if (mob.isBlocking()) {
                 mob.stopUsingItem();

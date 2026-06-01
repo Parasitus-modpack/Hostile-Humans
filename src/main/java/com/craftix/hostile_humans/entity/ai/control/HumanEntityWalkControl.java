@@ -83,11 +83,11 @@ public class HumanEntityWalkControl extends MoveControl {
                 if (target != null
                         && this.mob.onGround()
                         && this.human.onPlayerJumpCoolDown <= 0
-                        && target.distanceTo(this.human) < 2.2F
+                        && target.distanceTo(this.human) < 1.8F
                         && HumanUtil.isMeleeWeapon(this.human.getMainHandItem())
                         && this.human.meleeFlurryHitsRemaining <= 0
                         && this.human.meleeFlurryDamageTicks <= 0
-                        && this.human.getRandom().nextFloat() < 0.25F) {
+                        && this.human.getRandom().nextFloat() < 0.12F) {
                     this.mob.getJumpControl().jump();
 
                     double x = target.getX() - this.mob.getX();
@@ -99,18 +99,11 @@ public class HumanEntityWalkControl extends MoveControl {
                         this.mob.setDeltaMovement(this.mob.getDeltaMovement().add(boostX, 0.0D, boostZ));
                     }
 
-                    this.human.onPlayerJumpCoolDown = 8;
+                    this.human.onPlayerJumpCoolDown = 12;
                 }
             }
         } else if (this.operation == MoveControl.Operation.JUMPING) {
             this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
-            LivingEntity target = this.human.getTarget();
-            if (target != null) {
-                float targetYaw = (float) (Mth.atan2(target.getZ() - this.mob.getZ(), target.getX() - this.mob.getX()) * 57.2957763671875D) - 90.0F;
-                this.mob.setYRot(this.rotlerp(this.mob.getYRot(), targetYaw, 90.0F));
-                this.mob.yBodyRot = this.mob.getYRot();
-                this.mob.lookAt(target, 30.0F, 30.0F);
-            }
             if (this.mob.onGround()) {
                 this.operation = MoveControl.Operation.WAIT;
             }
