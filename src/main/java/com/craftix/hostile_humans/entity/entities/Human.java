@@ -5,7 +5,6 @@ import com.craftix.hostile_humans.HumanUtil;
 import com.craftix.hostile_humans.Config;
 import com.craftix.hostile_humans.entity.HumanEntity;
 import com.craftix.hostile_humans.entity.PotionRangedAttackMob;
-import com.craftix.hostile_humans.entity.ai.control.HumanEntityRunControl;
 import com.craftix.hostile_humans.entity.ai.control.HumanEntityWalkControl;
 import com.craftix.hostile_humans.entity.ai.goal.*;
 import com.google.common.collect.Maps;
@@ -27,7 +26,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
@@ -74,14 +72,14 @@ import static com.craftix.hostile_humans.entity.entities.ModEntityType.ROAMER;
 
 public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttackMob, PotionRangedAttackMob {
 
-    public static final ItemStack[] EXTRA_EDIBLE_ITEMS = new ItemStack[]{Items.GOLDEN_APPLE.getDefaultInstance(), PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.REGENERATION), PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.HEALING), PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.STRENGTH)};
+    public static final ItemStack[] EXTRA_EDIBLE_ITEMS = new ItemStack[]{Items.GOLDEN_APPLE.getDefaultInstance(), PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.REGENERATION), PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.HEALING)};
     public static final ItemStack[] PRE_ATTACK_BUFF_ITEMS = new ItemStack[]{
             Items.GOLDEN_APPLE.getDefaultInstance(),
             PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.STRENGTH),
             PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.REGENERATION),
             PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.SWIFTNESS)
     };
-        public static final ItemStack MID_FIGHT_EMERGENCY_ITEM = Items.ENCHANTED_GOLDEN_APPLE.getDefaultInstance();
+    public static final ItemStack MID_FIGHT_EMERGENCY_ITEM = Items.ENCHANTED_GOLDEN_APPLE.getDefaultInstance();
 
     private static final UUID MODIFIER_UUID = UUID.fromString("7a0811af-4025-4691-ba75-2d638d4ab3f4");
 
@@ -106,6 +104,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     public int onPlayerJumpCoolDown;
     public int eatingColldown;
     private boolean queuedPreAttackBuff;
+    private boolean consumingPreAttackBuff;
+    private boolean chainingHealingFood;
     private boolean resolvedPreAttackBuffThisCombat;
     private boolean resolvedFleeThisCombat;
     private boolean shouldFleeThisCombat;
@@ -132,6 +132,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     // Food
     public HumanFood food = new HumanFood();
     public int healCooldown;
+    public int underwaterPotionAttemptCooldown;
 
     public void addExhaustion(float p_38704_) {
        this.food.exhaustionLevel = Math.min(this.food.exhaustionLevel + p_38704_, 40.0F);
@@ -147,13 +148,6 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
     //
     public int ticksOutOfCombat;
-    public int timesHealedInCombat;
-    //
-
-    private HumanEntityWalkControl walkControl;
-    private HumanEntityRunControl runControl;
-    private static final double RUN_THRESHOLD = 6.0D;
-
     public boolean isAlert;
 
     public Human(EntityType<? extends HumanEntity> entityType, Level level, HumanTier type) {
@@ -166,9 +160,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
 
 
-    this.walkControl = new HumanEntityWalkControl(this);
-    this.runControl = new HumanEntityRunControl(this);
-    this.moveControl = this.walkControl;
+        this.moveControl = new HumanEntityWalkControl(this);
         this.setPathfindingMalus(BlockPathTypes.WATER, 0.0F);
         this.waterNavigation = new WaterBoundPathNavigation(this, level);
         this.groundNavigation = new GroundPathNavigation(this, level);
@@ -304,7 +296,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     @Override
     public boolean doHurtTarget(Entity entityIn) {
-        if (this.isSleeping()) {
+        if (this.isSleepingOrLyingDown()) {
             return false;
         }
 
@@ -418,6 +410,9 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             } else {
                 clearPendingDrinkCleanup();
             }
+        }
+        if (!this.level().isClientSide && this.consumingPreAttackBuff && remainingTicks > 1) {
+            this.consumingPreAttackBuff = false;
         }
     }
 
@@ -538,9 +533,6 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         		this.eat(foodproperties.getNutrition(), foodproperties.getSaturationModifier());
         	}
 
-        	if (this.timesHealedInCombat < HumanUtil.getMaxCombatHealUses()) {
-                timesHealedInCombat++;
-            }
         }
         super.completeUsingItem();
         if (!this.level().isClientSide) {
@@ -565,7 +557,11 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             clearPendingDrinkCleanup();
         }
         if (!this.level().isClientSide && healingItem) {
-            this.eatingColldown = shouldContinueHealingChain(usedStack) ? 0 : 20 * 60;
+            this.chainingHealingFood = shouldContinueHealingChain(usedStack);
+            this.eatingColldown = this.chainingHealingFood ? 0 : 20 * 60;
+        }
+        if (!this.level().isClientSide) {
+            this.consumingPreAttackBuff = false;
         }
     }
 
@@ -574,9 +570,11 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             return false;
         }
 
-        return this.getTarget() != null
-                && this.getHealth() < this.getMaxHealth() * Config.healCombatPercent.get()
-                && this.food.foodLevel < 20;
+        return this.getHealth() < this.getMaxHealth() * Config.healCombatPercent.get()
+                && this.food.foodLevel < 20
+                && !this.isFleeing
+                && this.getTarget() == null
+                && this.tickCount >= 20 * 6 + this.lastCombatTime;
     }
 
     private boolean countsAsHealingItem(ItemStack stack) {
@@ -722,28 +720,6 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     @Override
     public void tick() {
-        if (this.getTarget() != null) {
-            boolean runningEnabled = Config.runJump.get();
-            boolean holdingRangedWeapon = this.isHolding(HumanUtil::isRangedWeapon);
-            if (this.moveControl == this.runControl && this.runControl.shouldPreferWalkControl()) {
-                this.moveControl = this.walkControl;
-            }
-            boolean keepRunControl = this.moveControl == this.runControl && this.runControl.shouldKeepControl();
-            if (runningEnabled && !holdingRangedWeapon && (keepRunControl || this.distanceTo(this.getTarget()) > RUN_THRESHOLD)) {
-                if (this.moveControl != this.runControl) {
-                    this.moveControl = this.runControl;
-                }
-            } else {
-                if (this.moveControl != this.walkControl) {
-                    this.moveControl = this.walkControl;
-                }
-            }
-        } else {
-            if (this.moveControl != this.walkControl) {
-                this.moveControl = this.walkControl;
-            }
-        }
-
         super.tick();
         sanityClearPendingDrinkItem();
         if (this.lookForChestCooldown > 0) this.lookForChestCooldown--;
@@ -752,8 +728,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         } else {
             ticksOutOfCombat++;
             if (ticksOutOfCombat > 20 * 60 * 2) {
-                timesHealedInCombat = 0;
                 queuedPreAttackBuff = false;
+                consumingPreAttackBuff = false;
                 resolvedPreAttackBuffThisCombat = false;
                 resolvedFleeThisCombat = false;
                 shouldFleeThisCombat = false;
@@ -877,7 +853,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     	for (int i = 16; i < 30; i++) {
             ItemStack inventoryItem = getData().getInventoryItem(i);
             if (inventoryItem.getItem() == Items.TOTEM_OF_UNDYING) {
-            	for (int j = 0; 0 < 16; j++) {
+            	for (int j = 0; j < 16; j++) {
                     ItemStack inventoryItem2 = getData().getInventoryItem(j);
                     if (inventoryItem2.isEmpty()) {
                     	getData().setInventoryItem(j, inventoryItem.copy());
@@ -934,20 +910,25 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
                 putItemAway(slotItem);
             }
 
-            if (wantsToSwim() && getTier() == HumanTier.LEVEL2 && !hasEffect(MobEffects.WATER_BREATHING)) {
+            if (isEyeInFluid(FluidTags.WATER)) {
                 this.setItemSlot(handSlot, PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.WATER_BREATHING));
             }
+            else if (this.chainingHealingFood) {
+                this.setItemSlot(handSlot, getRandomNormalFood());
+            }
             else if (getTier() == HumanTier.LEVEL2 && random.nextFloat() < 0.5) {
-                this.setItemSlot(handSlot, EXTRA_EDIBLE_ITEMS[(int) (Math.random() * EXTRA_EDIBLE_ITEMS.length)]);
+                this.setItemSlot(handSlot, EXTRA_EDIBLE_ITEMS[random.nextInt(EXTRA_EDIBLE_ITEMS.length)].copy());
             } else {
-            	if (getTier() == HumanTier.LEVEL2)
-            		this.setItemSlot(handSlot, EDIBLE_ITEMS_2[(int) (Math.random() * EDIBLE_ITEMS_2.length)]);
-            	else
-            		this.setItemSlot(handSlot, EDIBLE_ITEMS[(int) (Math.random() * EDIBLE_ITEMS.length)]);
+                this.setItemSlot(handSlot, getRandomNormalFood());
             }
             eatingColldown = countsAsHealingItem(this.getItemBySlot(handSlot)) ? 0 : 5 * 20;
             startUsingItem(handSlot == EquipmentSlot.MAINHAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND);
         }
+    }
+
+    private ItemStack getRandomNormalFood() {
+        ItemStack[] foodPool = getTier() == HumanTier.LEVEL2 ? EDIBLE_ITEMS_2 : EDIBLE_ITEMS;
+        return foodPool[random.nextInt(foodPool.length)].copy();
     }
 
     private void tryUsePreAttackBuff() {
@@ -964,6 +945,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         ItemStack buffItem = PRE_ATTACK_BUFF_ITEMS[random.nextInt(PRE_ATTACK_BUFF_ITEMS.length)].copy();
         this.setItemSlot(handSlot, buffItem);
         this.queuedPreAttackBuff = false;
+        this.consumingPreAttackBuff = true;
         this.eatingColldown = 5 * 20;
         startUsingItem(handSlot == EquipmentSlot.MAINHAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND);
     }
@@ -1009,6 +991,24 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             }
         }
         return shouldFleeThisCombat;
+    }
+
+    public boolean isPreparingPreAttackBuff() {
+        return this.queuedPreAttackBuff || this.consumingPreAttackBuff;
+    }
+
+    public boolean isSleepingOrLyingDown() {
+        return this.isSleeping() || this.getPose() == Pose.SLEEPING;
+    }
+
+    public boolean shouldDrinkWaterBreathingPotion() {
+        if (this.getTier() != HumanTier.LEVEL2 || this.hasEffect(MobEffects.WATER_BREATHING) || this.underwaterPotionAttemptCooldown > 0) {
+            return false;
+        }
+
+        this.underwaterPotionAttemptCooldown = 20 * 10;
+        double chance = Math.max(0.0D, Math.min(1.0D, Config.underwaterWaterPotionChance.get()));
+        return this.random.nextDouble() < chance;
     }
 
     private void tryEquipWeapon() {
@@ -1063,6 +1063,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
         if (this.onPlayerJumpCoolDown > 0) --this.onPlayerJumpCoolDown;
         if (this.eatingColldown > 0) --this.eatingColldown;
+        if (this.underwaterPotionAttemptCooldown > 0) --this.underwaterPotionAttemptCooldown;
         if (this.meleeFlurryDamageTicks > 0) --this.meleeFlurryDamageTicks;
 
         this.updateSwingTime();
@@ -1257,7 +1258,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     public int breathRecoveryTicks;
     public int noSwimAfterBreathTicks;
     public boolean prefersToFloat() {
-    	return this.shouldCatchBreath || this.breathRecoveryTicks > 0;
+        return this.shouldCatchBreath || this.breathRecoveryTicks > 0 || this.noSwimAfterBreathTicks > 0;
     }
     protected final WaterBoundPathNavigation waterNavigation;
     protected final GroundPathNavigation groundNavigation;
@@ -1284,7 +1285,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
 
     public boolean shouldUseWaterMovement() {
-        return this.isInWater() && this.hasSwimmingClearance() && (this.prefersToFloat() || this.wantsToSwim());
+        return this.isInWater() && (this.prefersToFloat() || (this.hasSwimmingClearance() && this.wantsToSwim()));
     }
 
     public boolean shouldJumpOutOfWaterToward(double wantedX, double wantedY, double wantedZ) {
@@ -1349,105 +1350,6 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
           }
        }
 
-    }
-
-    static class HumanMoveControl extends MoveControl {
-       private final Human human;
-
-       public HumanMoveControl(Human p_32433_) {
-          super(p_32433_);
-          this.human = p_32433_;
-       }
-
-        public void tick() {
-           LivingEntity livingentity = this.human.getTarget();
-            if (this.human.shouldUseWaterMovement()) {
-              if (this.human.shouldJumpOutOfWaterToward(this.wantedX, this.wantedY, this.wantedZ)) {
-                 this.human.getJumpControl().jump();
-                 this.human.setDeltaMovement(this.human.getDeltaMovement().add(0.0D, 0.18D, 0.0D));
-              }
-              if (this.human.shouldCatchBreath) {
-                 this.human.setDeltaMovement(this.human.getDeltaMovement().add(0.0D, 0.02D, 0.0D));
-              } else if (livingentity != null && livingentity.getY() > this.human.getY()) {
-                 this.human.setDeltaMovement(this.human.getDeltaMovement().add(0.0D, 0.002D, 0.0D));
-              }
-
-             if (this.operation != MoveControl.Operation.MOVE_TO || this.human.getNavigation().isDone()) {
-                this.human.setSpeed(0.0F);
-                return;
-             }
-
-             double d0 = this.wantedX - this.human.getX();
-             double d1 = this.wantedY - this.human.getY();
-             double d2 = this.wantedZ - this.human.getZ();
-             double d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
-             d1 /= d3;
-             float f = (float)(Mth.atan2(d2, d0) * (double)(180F / (float)Math.PI)) - 90.0F;
-             this.human.setYRot(this.rotlerp(this.human.getYRot(), f, 90.0F));
-             this.human.yBodyRot = this.human.getYRot();
-             float f1 = (float)(this.speedModifier * this.human.getAttributeValue(Attributes.MOVEMENT_SPEED)) * 2;
-             float f2 = Mth.lerp(0.125F, this.human.getSpeed(), f1);
-             this.human.setSpeed(f2);
-             this.human.setDeltaMovement(this.human.getDeltaMovement().add((double)f2 * d0 * 0.005D, (double)f2 * d1 * 0.1D, (double)f2 * d2 * 0.005D));
-          } else {
-             if (!this.human.onGround()) {
-                this.human.setDeltaMovement(this.human.getDeltaMovement().add(0.0D, -0.008D, 0.0D));
-              }
-
-              super.tick();
-                  this.tryGroundCombatJumps(livingentity);
-          }
-
-       }
-
-         private void tryGroundCombatJumps(@Nullable LivingEntity target) {
-              if (target == null || !this.human.onGround()) {
-                  return;
-              }
-
-              if (Config.runJump.get()
-                         && !this.human.isFleeing
-                         && this.human.onPlayerJumpCoolDown <= 0
-                         && this.human.distanceTo(target) >= 5.0F
-                         && isLookingAtTarget(this.human, target)
-                     && !this.human.isHolding(HumanUtil::isRangedWeapon)
-                     && !this.human.isHolding(HumanUtil::isTrident)
-                         && this.human.getRandom().nextFloat() < 0.1F) {
-                 this.human.getJumpControl().jump();
-                 pushVisibleCombatJump(target, 0.65D, 0.16D);
-                 this.human.onPlayerJumpCoolDown = 14;
-                 this.human.getNavigation().recomputePath();
-                 return;
-              }
-
-              if (Config.attackJump.get()
-                         && this.human.onPlayerJumpCoolDown <= 0
-                         && this.human.meleeFlurryHitsRemaining <= 0
-                         && this.human.meleeFlurryDamageTicks <= 0
-                         && isMeleeWeapon(this.human.getMainHandItem())
-                         && this.human.distanceTo(target) < 2.0F
-                         && this.human.getRandom().nextFloat() < 0.1F) {
-                 this.human.getJumpControl().jump();
-                 pushVisibleCombatJump(target, 0.22D, 0.12D);
-                 this.human.onPlayerJumpCoolDown = 10;
-              }
-          }
-
-         private void pushVisibleCombatJump(LivingEntity target, double horizontalBoost, double verticalBoost) {
-             this.human.lookAt(target, 30.0F, 30.0F);
-             double dx = target.getX() - this.human.getX();
-             double dz = target.getZ() - this.human.getZ();
-             double horizontalLength = Math.sqrt(dx * dx + dz * dz);
-             if (horizontalLength > 1.0E-4D) {
-                 double vx = dx / horizontalLength * horizontalBoost;
-                 double vz = dz / horizontalLength * horizontalBoost;
-                 this.human.setDeltaMovement(vx, verticalBoost, vz);
-                 this.human.setYRot((float)(Mth.atan2(vz, vx) * (180.0D / Math.PI)) - 90.0F);
-                 this.human.yBodyRot = this.human.getYRot();
-             } else {
-                 this.human.setDeltaMovement(this.human.getDeltaMovement().x, verticalBoost, this.human.getDeltaMovement().z);
-             }
-         }
     }
 
 }

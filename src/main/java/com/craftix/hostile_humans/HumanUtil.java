@@ -1,8 +1,6 @@
 package com.craftix.hostile_humans;
 
 import com.craftix.hostile_humans.entity.entities.Human;
-import com.craftix.hostile_humans.entity.entities.HumanTier;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -22,14 +20,8 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 public class HumanUtil {
-    public static final int MAX_COMBAT_HEAL_USES = 2;
-
-    public static int getMaxCombatHealUses() {
-        return Math.min(MAX_COMBAT_HEAL_USES, Math.max(0, Config.healUsesPerCombat.get()));
-    }
-
-    public static ItemStack[] EDIBLE_ITEMS = new ItemStack[]{Items.APPLE.getDefaultInstance(), Items.BREAD.getDefaultInstance(), Items.COOKED_PORKCHOP.getDefaultInstance(), Items.COOKED_COD.getDefaultInstance(), Items.COOKED_SALMON.getDefaultInstance(), Items.COOKIE.getDefaultInstance(), Items.MELON_SLICE.getDefaultInstance(), Items.COOKED_BEEF.getDefaultInstance(), Items.COOKED_CHICKEN.getDefaultInstance(), Items.CARROT.getDefaultInstance(), Items.POTATO.getDefaultInstance(), Items.BAKED_POTATO.getDefaultInstance(), Items.GOLDEN_CARROT.getDefaultInstance(), Items.PUMPKIN_PIE.getDefaultInstance(), Items.RABBIT.getDefaultInstance(), Items.COOKED_RABBIT.getDefaultInstance(), Items.RABBIT_STEW.getDefaultInstance(), Items.MUTTON.getDefaultInstance(), Items.COOKED_MUTTON.getDefaultInstance(), Items.BEETROOT.getDefaultInstance(), Items.DRIED_KELP.getDefaultInstance(), Items.SWEET_BERRIES.getDefaultInstance(), Items.GLOW_BERRIES.getDefaultInstance()};
-    public static ItemStack[] EDIBLE_ITEMS_2 = new ItemStack[]{Items.APPLE.getDefaultInstance(), Items.BREAD.getDefaultInstance(), Items.COOKED_PORKCHOP.getDefaultInstance(), Items.COOKED_COD.getDefaultInstance(), Items.COOKED_SALMON.getDefaultInstance(), Items.COOKIE.getDefaultInstance(), Items.MELON_SLICE.getDefaultInstance(), Items.COOKED_BEEF.getDefaultInstance(), Items.COOKED_CHICKEN.getDefaultInstance(), Items.CARROT.getDefaultInstance(), Items.POTATO.getDefaultInstance(), Items.BAKED_POTATO.getDefaultInstance(), Items.GOLDEN_CARROT.getDefaultInstance(), Items.PUMPKIN_PIE.getDefaultInstance(), Items.COOKED_RABBIT.getDefaultInstance(), Items.RABBIT_STEW.getDefaultInstance(), Items.COOKED_MUTTON.getDefaultInstance(), Items.BEETROOT.getDefaultInstance(), Items.DRIED_KELP.getDefaultInstance(), Items.SWEET_BERRIES.getDefaultInstance(), Items.GLOW_BERRIES.getDefaultInstance()};
+    public static ItemStack[] EDIBLE_ITEMS = new ItemStack[]{Items.BREAD.getDefaultInstance(), Items.COOKED_PORKCHOP.getDefaultInstance(), Items.COOKED_COD.getDefaultInstance(), Items.COOKED_SALMON.getDefaultInstance(), Items.COOKED_BEEF.getDefaultInstance(), Items.COOKED_CHICKEN.getDefaultInstance(), Items.COOKED_RABBIT.getDefaultInstance(), Items.COOKED_MUTTON.getDefaultInstance()};
+    public static ItemStack[] EDIBLE_ITEMS_2 = new ItemStack[]{Items.BREAD.getDefaultInstance(), Items.COOKED_PORKCHOP.getDefaultInstance(), Items.COOKED_COD.getDefaultInstance(), Items.COOKED_SALMON.getDefaultInstance(), Items.COOKED_BEEF.getDefaultInstance(), Items.COOKED_CHICKEN.getDefaultInstance(), Items.COOKED_RABBIT.getDefaultInstance(), Items.COOKED_MUTTON.getDefaultInstance()};
     public static String[] greetings = {
             "Huh? INTRUDER!",
             "Who are you? GET OUT OF HERE.",
@@ -114,17 +106,18 @@ public class HumanUtil {
         if (!human.isAlive()) return false;
         if (human.isUsingItem()) return false;
         if (human.eatingColldown != 0) return false;
-        if (human.wantsToSwim() && !human.hasEffect(MobEffects.WATER_BREATHING)) {
-            if (human.getTier() != HumanTier.LEVEL2) return false;
-            double chance = Math.max(0.0D, Math.min(1.0D, Config.underwaterWaterPotionChance.get()));
-            return human.getRandom().nextDouble() < chance;
+        if (human.isEyeInFluid(net.minecraft.tags.FluidTags.WATER)) {
+            return human.shouldDrinkWaterBreathingPotion();
         }
         if (human.toAvoid != null || human.isFleeing) return false;
-        if (isLowHp(human) && human.getTarget() != null && human.shouldStartFleeingThisCombat()) return false;
-        if (isLowHpInCombat(human)) return true;
+        if (human.getTarget() != null) {
+            if (isLowHp(human)) {
+                human.shouldStartFleeingThisCombat();
+            }
+            return false;
+        }
         if (!isLowHp(human)) return false;
         if (human.isUsingItem()) return false;
-        if (human.getTarget() != null) return false;
         if (human.tickCount < 20 * 6 + human.lastCombatTime) return false;
 
         return true;

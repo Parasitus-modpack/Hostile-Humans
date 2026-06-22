@@ -11,6 +11,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.MoveControl;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
@@ -24,6 +25,7 @@ public class HumanEntityWalkControl extends MoveControl {
 
     @Override
     public void tick() {
+        this.updateSprintState();
         float f9;
         if (this.operation == MoveControl.Operation.STRAFE) {
             float f = (float) this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED);
@@ -66,6 +68,11 @@ public class HumanEntityWalkControl extends MoveControl {
             this.mob.setYRot(this.rotlerp(this.mob.getYRot(), f9, 30.0F));
             this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
 
+            LivingEntity target = this.human.getTarget();
+            if (this.tryRunJump(target)) {
+                return;
+            }
+
             BlockPos blockpos = this.mob.blockPosition();
             BlockState blockstate = this.mob.level().getBlockState(blockpos);
             VoxelShape voxelshape = blockstate.getCollisionShape(this.mob.level(), blockpos);
@@ -78,8 +85,7 @@ public class HumanEntityWalkControl extends MoveControl {
                 this.operation = MoveControl.Operation.JUMPING;
             }
 
-            if (Config.attackJump.get()) {
-                LivingEntity target = this.human.getTarget();
+            if (this.operation != MoveControl.Operation.JUMPING && Config.attackJump.get()) {
                 if (target != null
                         && this.mob.onGround()
                         && this.human.onPlayerJumpCoolDown <= 0
@@ -89,6 +95,7 @@ public class HumanEntityWalkControl extends MoveControl {
                         && this.human.meleeFlurryDamageTicks <= 0
                         && this.human.getRandom().nextFloat() < 0.12F) {
                     this.mob.getJumpControl().jump();
+                    this.operation = MoveControl.Operation.JUMPING;
 
                     double x = target.getX() - this.mob.getX();
                     double z = target.getZ() - this.mob.getZ();
@@ -108,19 +115,58 @@ public class HumanEntityWalkControl extends MoveControl {
                 this.operation = MoveControl.Operation.WAIT;
             }
         } else {
-            LivingEntity target = this.human.getTarget();
-            if (target != null && !this.human.isFleeing) {
-                this.mob.getNavigation().moveTo(target, 1.0D);
-                float targetYaw = (float) (Mth.atan2(target.getZ() - this.mob.getZ(), target.getX() - this.mob.getX()) * 57.2957763671875D) - 90.0F;
-                this.mob.setYRot(this.rotlerp(this.mob.getYRot(), targetYaw, 30.0F));
-                this.mob.yBodyRot = this.mob.getYRot();
-                this.mob.lookAt(target, 30.0F, 30.0F);
-                this.mob.setSpeed((float) this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED));
-                this.mob.setZza(1.0F);
-            } else {
-                this.mob.setZza(0.0F);
-            }
+            this.mob.setZza(0.0F);
+            this.mob.setXxa(0.0F);
         }
+    }
+
+    private boolean tryRunJump(LivingEntity target) {
+        if (!Config.runJump.get()
+                || target == null
+                || this.human.isFleeing
+                || !this.mob.onGround()
+                || !this.mob.isSprinting()
+                || this.human.onPlayerJumpCoolDown > 0
+                || target.distanceTo(this.human) < 5.0F
+                || target.distanceTo(this.human) > 14.0F
+                || Math.abs(target.getY() - this.human.getY()) > 2.5D
+                || this.human.isHolding(HumanUtil::isRangedWeapon)
+                || HumanUtil.isTrident(this.human.getMainHandItem())
+                || !this.human.getSensing().hasLineOfSight(target)) {
+            return false;
+        }
+
+        double dx = target.getX() - this.mob.getX();
+        double dz = target.getZ() - this.mob.getZ();
+        double horizontalLength = Math.sqrt(dx * dx + dz * dz);
+        if (horizontalLength < 1.0E-4D) {
+            return false;
+        }
+
+        float targetYaw = (float) (Mth.atan2(dz, dx) * 57.2957763671875D) - 90.0F;
+        this.mob.setYRot(this.rotlerp(this.mob.getYRot(), targetYaw, 30.0F));
+        this.mob.yBodyRot = this.mob.getYRot();
+        this.mob.getJumpControl().jump();
+        this.operation = MoveControl.Operation.JUMPING;
+
+        Vec3 current = this.mob.getDeltaMovement();
+        double desiredSpeed = Math.max(0.24D, Math.min(0.32D, current.horizontalDistance() + 0.03D));
+        this.mob.setDeltaMovement(dx / horizontalLength * desiredSpeed, current.y, dz / horizontalLength * desiredSpeed);
+        this.human.onPlayerJumpCoolDown = 24;
+        return true;
+    }
+
+    private void updateSprintState() {
+        LivingEntity target = this.human.getTarget();
+        boolean shouldSprint = Config.runJump.get()
+                && target != null
+                && !this.human.isFleeing
+                && !this.human.isUsingItem()
+                && !this.human.isHolding(HumanUtil::isRangedWeapon)
+                && !HumanUtil.isTrident(this.human.getMainHandItem())
+                && this.human.distanceTo(target) >= 5.0F
+                && !this.human.getNavigation().isDone();
+        this.human.setSprinting(shouldSprint);
     }
 }
 

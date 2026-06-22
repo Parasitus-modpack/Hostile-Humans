@@ -36,12 +36,11 @@ public class MeleeAttackGoal extends HumanGoal {
 
     @Override
     public boolean canUse() {
-        if (this.mob.isSleeping())
+        if (this.mob instanceof Human human && human.isSleepingOrLyingDown())
             return false;
 
         if (mob instanceof Human human && human.isFleeing)
             return false;
-
         long gameTime = this.mob.level().getGameTime();
         if (gameTime - this.lastCanUseCheck < COOLDOWN_BETWEEN_CAN_USE_CHECKS) {
             return false;
@@ -72,12 +71,11 @@ public class MeleeAttackGoal extends HumanGoal {
 
     @Override
     public boolean canContinueToUse() {
-        if (this.mob.isSleeping())
+        if (this.mob instanceof Human human && human.isSleepingOrLyingDown())
             return false;
 
         if (mob instanceof Human human && human.isFleeing)
             return false;
-
         LivingEntity livingEntity = this.mob.getTarget();
         if (!this.mob.canAttack(mob.getTarget())) {
             return false;
@@ -166,7 +164,9 @@ public class MeleeAttackGoal extends HumanGoal {
     protected void checkAndPerformAttack(LivingEntity livingEntity, double attackDistance) {
 
         double distance = this.getAttackReachSqr(livingEntity);
-        if (!this.mob.isSleeping() && attackDistance <= distance && this.ticksUntilNextAttack <= 0) {
+        boolean preparingBuff = this.mob instanceof Human human && human.isPreparingPreAttackBuff();
+        boolean lyingDown = this.mob instanceof Human human && human.isSleepingOrLyingDown();
+        if (!lyingDown && !preparingBuff && attackDistance <= distance && this.ticksUntilNextAttack <= 0) {
             this.resetAttackCooldown();
             if (mob.isBlocking()) {
                 mob.stopUsingItem();
