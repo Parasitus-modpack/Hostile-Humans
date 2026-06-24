@@ -4,6 +4,7 @@ import com.craftix.hostile_humans.entity.entities.Human;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -106,7 +107,7 @@ public class HumanUtil {
         if (!human.isAlive()) return false;
         if (human.isUsingItem()) return false;
         if (human.eatingColldown != 0) return false;
-        if (human.isEyeInFluid(net.minecraft.tags.FluidTags.WATER)) {
+        if (human.isEyeInFluid(FluidTags.WATER)) {
             return human.shouldDrinkWaterBreathingPotion();
         }
         if (human.toAvoid != null || human.isFleeing) return false;
