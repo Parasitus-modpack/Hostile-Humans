@@ -37,6 +37,8 @@ public class CrossbowGoal<T extends HumanEntity & RangedAttackMob & CrossbowAtta
     public boolean canUse() {
         if (mob instanceof Human human && human.isFleeing)
             return false;
+        if (mob instanceof Human human && human.isSleepingOrLyingDown())
+            return false;
         return this.isValidTarget() && this.isHoldingCrossbow();
     }
 
@@ -46,6 +48,8 @@ public class CrossbowGoal<T extends HumanEntity & RangedAttackMob & CrossbowAtta
 
     public boolean canContinueToUse() {
         if (mob instanceof Human human && human.isFleeing)
+            return false;
+        if (mob instanceof Human human && human.isSleepingOrLyingDown())
             return false;
         return this.isValidTarget() && (this.canUse() || !this.mob.getNavigation().isDone()) && this.isHoldingCrossbow();
     }
@@ -78,6 +82,12 @@ public class CrossbowGoal<T extends HumanEntity & RangedAttackMob & CrossbowAtta
     }
 
     public void tick() {
+        if (this.mob instanceof Human human && human.isSleepingOrLyingDown()) {
+            this.mob.stopUsingItem();
+            this.mob.setChargingCrossbow(false);
+            this.crossbowState = UNCHARGED;
+            return;
+        }
         LivingEntity livingentity = this.mob.getTarget();
         if (livingentity != null) {
             boolean flag = this.mob.getSensing().hasLineOfSight(livingentity);

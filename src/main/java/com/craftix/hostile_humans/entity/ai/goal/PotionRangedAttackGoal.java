@@ -6,6 +6,7 @@
 package com.craftix.hostile_humans.entity.ai.goal;
 
 import com.craftix.hostile_humans.entity.PotionRangedAttackMob;
+import com.craftix.hostile_humans.entity.entities.Human;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -50,6 +51,9 @@ public class PotionRangedAttackGoal extends Goal {
     }
 
     public boolean canUse() {
+        if (this.mob instanceof Human human && (human.isFleeing || human.isSleepingOrLyingDown())) {
+            return false;
+        }
         LivingEntity mobTarget = this.mob.getTarget();
         if (mobTarget != null && mobTarget.isAlive()) {
             if (mob.getMainHandItem().getItem() instanceof SplashPotionItem || mob.getOffhandItem().getItem() instanceof SplashPotionItem) {
@@ -61,6 +65,9 @@ public class PotionRangedAttackGoal extends Goal {
     }
 
     public boolean canContinueToUse() {
+        if (this.mob instanceof Human human && (human.isFleeing || human.isSleepingOrLyingDown())) {
+            return false;
+        }
         return this.canUse() || !this.mob.getNavigation().isDone();
     }
 
@@ -75,6 +82,9 @@ public class PotionRangedAttackGoal extends Goal {
     }
 
     public void tick() {
+        if (this.target == null || (this.mob instanceof Human human && human.isSleepingOrLyingDown())) {
+            return;
+        }
         double distanceToSqr = this.mob.distanceToSqr(this.target.getX(), this.target.getY(), this.target.getZ());
         boolean hasLineOfSight = this.mob.getSensing().hasLineOfSight(this.target);
         if (hasLineOfSight) {

@@ -15,18 +15,24 @@ public class TridentAttackGoal extends RangedAttackGoal {
 
     public boolean canUse() {
         if (human.getTarget() == null) return false;
+        if (human.isFleeing || human.isSleepingOrLyingDown()) return false;
 
         return super.canUse() && this.human.getMainHandItem().is(Items.TRIDENT) && human.getTarget().distanceTo(human) > 2.5;
     }
 
     @Override
     public void tick() {
+        if (human.isSleepingOrLyingDown()) {
+            human.stopUsingItem();
+            return;
+        }
         human.getNavigation().stop();
         super.tick();
     }
 
     @Override
     public boolean canContinueToUse() {
+        if (human.isFleeing || human.isSleepingOrLyingDown()) return false;
         if (!this.human.getMainHandItem().is(Items.TRIDENT)) return false;
         return super.canContinueToUse();
     }

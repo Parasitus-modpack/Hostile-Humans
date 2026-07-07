@@ -103,6 +103,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     public int onPlayerJumpCoolDown;
     public int eatingColldown;
+    public int healingAfterFleeTicks;
     private boolean queuedPreAttackBuff;
     private boolean consumingPreAttackBuff;
     private boolean chainingHealingFood;
@@ -301,16 +302,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         }
 
         this.resetFallDistance();
-        float originalAttackDamage = (float) this.getAttributeValue(Attributes.ATTACK_DAMAGE);
-        if (this.meleeFlurryDamageTicks > 0) {
-            this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(Math.max(0.5D, originalAttackDamage * 0.4D));
-        }
-
         boolean result = super.doHurtTarget(entityIn);
-
-        if (this.meleeFlurryDamageTicks > 0) {
-            this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(originalAttackDamage);
-        }
 
         swing(InteractionHand.MAIN_HAND);
         return result;
@@ -456,6 +448,10 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     @Override
     public void setTarget(@Nullable LivingEntity livingEntity) {
+        if (!this.level().isClientSide && livingEntity != null && (this.isSleepingOrLyingDown() || this.healingAfterFleeTicks > 0)) {
+            livingEntity = null;
+        }
+
         LivingEntity previousTarget = this.getTarget();
         super.setTarget(livingEntity);
 
@@ -574,7 +570,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
                 && this.food.foodLevel < 20
                 && !this.isFleeing
                 && this.getTarget() == null
-                && this.tickCount >= 20 * 6 + this.lastCombatTime;
+                && (this.healingAfterFleeTicks > 0 || this.tickCount >= 20 * 6 + this.lastCombatTime);
     }
 
     private boolean countsAsHealingItem(ItemStack stack) {
@@ -723,6 +719,23 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         super.tick();
         sanityClearPendingDrinkItem();
         if (this.lookForChestCooldown > 0) this.lookForChestCooldown--;
+        if (!this.level().isClientSide && this.isSleepingOrLyingDown()) {
+            if (this.getTarget() != null) {
+                this.setTarget(null);
+            }
+            if (this.isUsingItem()) {
+                this.stopUsingItem();
+            }
+            this.getNavigation().stop();
+            this.setSprinting(false);
+            this.setDeltaMovement(0.0D, this.getDeltaMovement().y, 0.0D);
+            this.xxa = 0.0F;
+            this.zza = 0.0F;
+        }
+        if (!this.level().isClientSide && this.healingAfterFleeTicks > 0 && this.getTarget() != null) {
+            this.setTarget(null);
+            this.getNavigation().stop();
+        }
         if (this.getTarget() != null) {
             ticksOutOfCombat = 0;
         } else {
@@ -824,7 +837,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             return;
         }
 
-        if (toAvoid != null || getTarget() != null) {
+        if (toAvoid != null || (getTarget() != null && healingAfterFleeTicks <= 0)) {
             lastCombatTime = tickCount;
         }
 
@@ -983,7 +996,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             resolvedFleeThisCombat = true;
             if (this.getTier() == HumanTier.LEVEL2
                     && !this.hasMidFightEmergencyBuffActive()
-                    && this.random.nextFloat() < Config.midBattleBuffInsteadOfRunChance.get()) {
+                    && this.random.nextFloat() < this.getMidFightEmergencyBuffChance()) {
                 this.queuedMidFightEmergencyBuff = true;
                 shouldFleeThisCombat = false;
             } else {
@@ -991,6 +1004,14 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             }
         }
         return shouldFleeThisCombat;
+    }
+
+    private double getMidFightEmergencyBuffChance() {
+        double testChance = Config.midBattleBuffInsteadOfRunTestChance.get();
+        if (testChance >= 0.0D) {
+            return testChance;
+        }
+        return Config.midBattleBuffInsteadOfRunChance.get();
     }
 
     public boolean isPreparingPreAttackBuff() {
@@ -1063,6 +1084,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
         if (this.onPlayerJumpCoolDown > 0) --this.onPlayerJumpCoolDown;
         if (this.eatingColldown > 0) --this.eatingColldown;
+        if (this.healingAfterFleeTicks > 0) --this.healingAfterFleeTicks;
         if (this.underwaterPotionAttemptCooldown > 0) --this.underwaterPotionAttemptCooldown;
         if (this.meleeFlurryDamageTicks > 0) --this.meleeFlurryDamageTicks;
 
@@ -1167,6 +1189,10 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     @Override
     public void performRangedAttack(LivingEntity target, float distanceFactor) {
+        if (this.isSleepingOrLyingDown()) {
+            return;
+        }
+
         if (this.getMainHandItem().getItem() instanceof TridentItem) {
             performRangedAttackTrident(target, distanceFactor);
             return;
@@ -1191,6 +1217,9 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
 
     public void performRangedAttackTrident(LivingEntity p_32356_, float p_32357_) {
+        if (this.isSleepingOrLyingDown()) {
+            return;
+        }
 
         //getData().setInventoryItem(2, getMainHandItem());
         setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
@@ -1212,6 +1241,10 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     @Override
     public void performPotionRangedAttack(LivingEntity target, float var2) {
+        if (this.isSleepingOrLyingDown()) {
+            return;
+        }
+
         Vec3 deltaMovement = target.getDeltaMovement();
         double $$3 = target.getX() + deltaMovement.x - this.getX();
         double $$4 = target.getEyeY() - 1.1 - this.getY();
@@ -1244,7 +1277,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     @Override
     public boolean isVisuallySwimming() {
-    	return super.isVisuallySwimming() || (this.shouldUseWaterMovement() && this.isEyeInFluid(FluidTags.WATER));
+    	return super.isVisuallySwimming() || this.getPose() == Pose.SWIMMING || (this.shouldUseWaterMovement() && this.isEyeInFluid(FluidTags.WATER));
     }
 
     public static final EntityDimensions STANDING_DIMENSIONS = EntityDimensions.scalable(0.6F, 1.8F);

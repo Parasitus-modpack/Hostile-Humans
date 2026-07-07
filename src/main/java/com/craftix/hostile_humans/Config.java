@@ -31,6 +31,7 @@ public class Config {
     public static ForgeConfigSpec.ConfigValue<Integer> postBreathNoSwimTicks;
     public static ForgeConfigSpec.ConfigValue<Boolean> patreonNames;
     public static ForgeConfigSpec.ConfigValue<Boolean> noWaystones;
+    public static ForgeConfigSpec.ConfigValue<Double> midBattleBuffInsteadOfRunTestChance;
     public static ForgeConfigSpec.EnumValue<SpawnerEntity.SpawnType> eventType;
 
     static {
@@ -44,11 +45,9 @@ public class Config {
         healCombatPercent = BUILDER.comment("The % of hp to attempt healing during combat").define("heal_combat", 0.5d);
         preAttackBuffChance = BUILDER.comment("Chance that a human will use a pre-attack buff item once after spotting a player").define("pre_attack_buff_chance", 0.05d);
         midBattleBuffInsteadOfRunChance = BUILDER.comment("Tier 2 only: chance [0..1] that a human eats an enchanted golden apple instead of fleeing mid-fight at low health").defineInRange("mid_battle_buff_instead_of_run_chance", 0.01d, 0.0d, 1.0d);
-        meleeFlurryChance = BUILDER.comment("Rare chance that a human enters a short low-damage melee flurry").define("melee_flurry_chance", 0.05d);
+        midBattleBuffInsteadOfRunTestChance = BUILDER.comment("Testing override for enchanted golden apple mid-fight chance. Set below 0 to use the normal chance.").defineInRange("mid_battle_buff_instead_of_run_test_chance", -1.0d, -1.0d, 1.0d);
         meleeAttackCooldownMin = BUILDER.comment("Minimum melee attack cooldown in ticks").define("melee_attack_cooldown_min", 3);
         meleeAttackCooldownMax = BUILDER.comment("Maximum melee attack cooldown in ticks").define("melee_attack_cooldown_max", 12);
-        meleeFlurryHitsMin = BUILDER.comment("Minimum number of hits in a melee flurry").define("melee_flurry_hits_min", 3);
-        meleeFlurryHitsMax = BUILDER.comment("Maximum number of hits in a melee flurry").define("melee_flurry_hits_max", 6);
         throwPotionsEvery = BUILDER.comment("Throw potions every x ticks").define("throw_potions_every", 20 * 100);
         roamerNaturalSpawnRoll = BUILDER.comment("Natural roamer spawn roll: 1 = always pass (very high spawn for testing), 200 = old default rarity").defineInRange("roamer_natural_spawn_roll", 1, 1, 10000);
         battleEventNaturalSpawnRoll = BUILDER.comment("Natural battle-event spawner roll: 1 = always pass (very high spawn for testing), 200 = old default rarity").defineInRange("battle_event_natural_spawn_roll", 1, 1, 10000);

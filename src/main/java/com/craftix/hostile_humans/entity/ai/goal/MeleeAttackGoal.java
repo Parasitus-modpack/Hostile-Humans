@@ -1,6 +1,7 @@
 package com.craftix.hostile_humans.entity.ai.goal;
 
 import com.craftix.hostile_humans.Config;
+import com.craftix.hostile_humans.HumanUtil;
 import com.craftix.hostile_humans.entity.HumanEntity;
 import com.craftix.hostile_humans.entity.entities.Human;
 import net.minecraft.world.entity.LivingEntity;
@@ -46,10 +47,13 @@ public class MeleeAttackGoal extends HumanGoal {
             return false;
         } else {
             this.lastCanUseCheck = gameTime;
-            if (!this.mob.canAttack(mob.getTarget())) {
+            LivingEntity livingEntity = this.mob.getTarget();
+            if (livingEntity == null || !this.mob.canAttack(livingEntity)) {
                 return false;
             } else {
-                LivingEntity livingEntity = this.mob.getTarget();
+                if (!this.hasMeleeSlot(livingEntity)) {
+                    return false;
+                }
                 if (canPenalize) {
                     if (--this.ticksUntilNextPathRecalculation <= 0) {
                         this.path = this.mob.getNavigation().createPath(livingEntity, 0);
@@ -77,7 +81,13 @@ public class MeleeAttackGoal extends HumanGoal {
         if (mob instanceof Human human && human.isFleeing)
             return false;
         LivingEntity livingEntity = this.mob.getTarget();
-        if (!this.mob.canAttack(mob.getTarget())) {
+        if (livingEntity == null) {
+            return false;
+        }
+        if (!this.hasMeleeSlot(livingEntity)) {
+            return false;
+        }
+        if (!this.mob.canAttack(livingEntity)) {
             return false;
         } else if (!this.followingTargetEvenIfNotSeen) {
             return !this.mob.getNavigation().isDone();
@@ -179,24 +189,6 @@ public class MeleeAttackGoal extends HumanGoal {
     }
 
     protected void resetAttackCooldown() {
-        if (mob instanceof Human human) {
-            if (human.meleeFlurryHitsRemaining > 0) {
-                human.meleeFlurryHitsRemaining--;
-                human.meleeFlurryDamageTicks = 2;
-                this.ticksUntilNextAttack = this.adjustedTickDelay(1);
-                return;
-            }
-
-            if (mob.getRandom().nextFloat() < Config.meleeFlurryChance.get()) {
-                int flurryMin = Math.min(Config.meleeFlurryHitsMin.get(), Config.meleeFlurryHitsMax.get());
-                int flurryMax = Math.max(Config.meleeFlurryHitsMin.get(), Config.meleeFlurryHitsMax.get());
-                human.meleeFlurryHitsRemaining = mob.getRandom().nextInt(flurryMin, flurryMax + 1) - 1;
-                human.meleeFlurryDamageTicks = 2;
-                this.ticksUntilNextAttack = this.adjustedTickDelay(1);
-                return;
-            }
-        }
-
         int cooldownMin = Math.min(Config.meleeAttackCooldownMin.get(), Config.meleeAttackCooldownMax.get());
         int cooldownMax = Math.max(Config.meleeAttackCooldownMin.get(), Config.meleeAttackCooldownMax.get());
         this.ticksUntilNextAttack = this.adjustedTickDelay(mob.getRandom().nextInt(cooldownMin, cooldownMax + 1));
@@ -204,5 +196,34 @@ public class MeleeAttackGoal extends HumanGoal {
 
     protected double getAttackReachSqr(LivingEntity livingEntity) {
         return this.mob.getBbWidth() * 3.0F * this.mob.getBbWidth() * 3.0F + livingEntity.getBbWidth();
+    }
+
+    private boolean hasMeleeSlot(LivingEntity target) {
+        if (!(this.mob instanceof Human human) || !(target instanceof Player)) {
+            return true;
+        }
+        if (!HumanUtil.isMeleeWeapon(human.getMainHandItem()) && !HumanUtil.isTrident(human.getMainHandItem())) {
+            return true;
+        }
+
+        int maxMelee = Config.maxTargeting.get();
+        if (maxMelee <= 0) {
+            return false;
+        }
+
+        double myDistance = human.distanceToSqr(target);
+        var closerMeleeHumans = target.level().getEntities(target, target.getBoundingBox().inflate(15), entity -> {
+            if (!(entity instanceof Human otherHuman) || otherHuman == human || otherHuman.getTarget() != target) {
+                return false;
+            }
+            if (otherHuman.isFleeing || otherHuman.healingAfterFleeTicks > 0 || otherHuman.isSleepingOrLyingDown()) {
+                return false;
+            }
+            if (!HumanUtil.isMeleeWeapon(otherHuman.getMainHandItem()) && !HumanUtil.isTrident(otherHuman.getMainHandItem())) {
+                return false;
+            }
+            return otherHuman.distanceToSqr(target) <= myDistance;
+        });
+        return closerMeleeHumans.size() < maxMelee;
     }
 }

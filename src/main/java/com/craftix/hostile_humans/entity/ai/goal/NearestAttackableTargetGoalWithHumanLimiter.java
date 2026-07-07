@@ -29,6 +29,10 @@ public class NearestAttackableTargetGoalWithHumanLimiter<T extends LivingEntity>
     }
 
     public boolean canContinueToUse() {
+        if (human.isSleepingOrLyingDown() || human.healingAfterFleeTicks > 0) {
+            return false;
+        }
+
         LivingEntity target1 = this.mob.getTarget();
         if (target1 == null) {
             target1 = this.targetMob;
@@ -68,6 +72,7 @@ public class NearestAttackableTargetGoalWithHumanLimiter<T extends LivingEntity>
     }
 
     public boolean canUse() {
+        if (human.isSleepingOrLyingDown() || human.healingAfterFleeTicks > 0) return false;
         if (HumanUtil.isLowHp(mob)) return false;
         boolean usable = super.canUse();
         if (usable) {

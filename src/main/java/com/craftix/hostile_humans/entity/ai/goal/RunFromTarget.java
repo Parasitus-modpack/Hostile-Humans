@@ -120,9 +120,15 @@ public class RunFromTarget extends Goal {
 
     public void stop() {
         //System.out.println("stop flee");
+        boolean stillNeedsHealing = HumanUtil.isLowHp(human);
         human.isFleeing = false;
         human.onPlayerJumpCoolDown = 20;
         human.toAvoid = null;
+        if (stillNeedsHealing) {
+            human.healingAfterFleeTicks = 20 * 10;
+            human.setTarget(null);
+            human.getNavigation().stop();
+        }
     }
 
     public void tick() {

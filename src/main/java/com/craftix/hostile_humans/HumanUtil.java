@@ -107,6 +107,7 @@ public class HumanUtil {
         if (!human.isAlive()) return false;
         if (human.isUsingItem()) return false;
         if (human.eatingColldown != 0) return false;
+        if (human.isSleepingOrLyingDown()) return false;
         if (human.isEyeInFluid(FluidTags.WATER)) {
             return human.shouldDrinkWaterBreathingPotion();
         }
@@ -119,7 +120,7 @@ public class HumanUtil {
         }
         if (!isLowHp(human)) return false;
         if (human.isUsingItem()) return false;
-        if (human.tickCount < 20 * 6 + human.lastCombatTime) return false;
+        if (human.healingAfterFleeTicks <= 0 && human.tickCount < 20 * 6 + human.lastCombatTime) return false;
 
         return true;
     }

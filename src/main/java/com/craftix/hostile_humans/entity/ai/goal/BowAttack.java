@@ -40,6 +40,8 @@ public class BowAttack<T extends HumanEntity & RangedAttackMob> extends Goal {
     public boolean canUse() {
         if (mob instanceof Human human && human.isFleeing)
             return false;
+        if (mob instanceof Human human && human.isSleepingOrLyingDown())
+            return false;
         return this.mob.getTarget() != null && this.isHoldingBow();
     }
 
@@ -49,6 +51,8 @@ public class BowAttack<T extends HumanEntity & RangedAttackMob> extends Goal {
 
     public boolean canContinueToUse() {
         if (mob instanceof Human human && human.isFleeing)
+            return false;
+        if (mob instanceof Human human && human.isSleepingOrLyingDown())
             return false;
         return (this.canUse() || !this.mob.getNavigation().isDone()) && this.isHoldingBow();
     }
@@ -78,6 +82,10 @@ public class BowAttack<T extends HumanEntity & RangedAttackMob> extends Goal {
     }
 
     public void tick() {
+        if (this.mob instanceof Human human && human.isSleepingOrLyingDown()) {
+            this.mob.stopUsingItem();
+            return;
+        }
         LivingEntity livingentity = this.mob.getTarget();
         if (livingentity != null) {
             double d0 = this.mob.distanceToSqr(livingentity.getX(), livingentity.getY(), livingentity.getZ());

@@ -91,8 +91,6 @@ public class HumanEntityWalkControl extends MoveControl {
                         && this.human.onPlayerJumpCoolDown <= 0
                         && target.distanceTo(this.human) < 1.8F
                         && HumanUtil.isMeleeWeapon(this.human.getMainHandItem())
-                        && this.human.meleeFlurryHitsRemaining <= 0
-                        && this.human.meleeFlurryDamageTicks <= 0
                         && this.human.getRandom().nextFloat() < 0.12F) {
                     this.mob.getJumpControl().jump();
                     this.operation = MoveControl.Operation.JUMPING;
@@ -124,6 +122,7 @@ public class HumanEntityWalkControl extends MoveControl {
         if (!Config.runJump.get()
                 || target == null
                 || this.human.isFleeing
+                || this.human.healingAfterFleeTicks > 0
                 || !this.mob.onGround()
                 || !this.mob.isSprinting()
                 || this.human.onPlayerJumpCoolDown > 0
@@ -136,8 +135,15 @@ public class HumanEntityWalkControl extends MoveControl {
             return false;
         }
 
-        double dx = target.getX() - this.mob.getX();
-        double dz = target.getZ() - this.mob.getZ();
+        double wantedDx = this.wantedX - this.mob.getX();
+        double wantedDz = this.wantedZ - this.mob.getZ();
+        double wantedHorizontalDistSqr = wantedDx * wantedDx + wantedDz * wantedDz;
+        if (wantedHorizontalDistSqr < 2.25D) {
+            return false;
+        }
+
+        double dx = wantedDx;
+        double dz = wantedDz;
         double horizontalLength = Math.sqrt(dx * dx + dz * dz);
         if (horizontalLength < 1.0E-4D) {
             return false;
@@ -150,9 +156,9 @@ public class HumanEntityWalkControl extends MoveControl {
         this.operation = MoveControl.Operation.JUMPING;
 
         Vec3 current = this.mob.getDeltaMovement();
-        double desiredSpeed = Math.max(0.24D, Math.min(0.32D, current.horizontalDistance() + 0.03D));
+        double desiredSpeed = Math.max(0.22D, Math.min(0.28D, current.horizontalDistance() + 0.02D));
         this.mob.setDeltaMovement(dx / horizontalLength * desiredSpeed, current.y, dz / horizontalLength * desiredSpeed);
-        this.human.onPlayerJumpCoolDown = 24;
+        this.human.onPlayerJumpCoolDown = 30;
         return true;
     }
 
@@ -161,6 +167,7 @@ public class HumanEntityWalkControl extends MoveControl {
         boolean shouldSprint = Config.runJump.get()
                 && target != null
                 && !this.human.isFleeing
+                && this.human.healingAfterFleeTicks <= 0
                 && !this.human.isUsingItem()
                 && !this.human.isHolding(HumanUtil::isRangedWeapon)
                 && !HumanUtil.isTrident(this.human.getMainHandItem())
