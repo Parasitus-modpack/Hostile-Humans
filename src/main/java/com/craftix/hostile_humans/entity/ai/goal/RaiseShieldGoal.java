@@ -21,7 +21,7 @@ public class RaiseShieldGoal extends Goal {
 
     @Override
     public boolean canUse() {
-    	if (human.shieldUpTicks > 0) return true;
+        if (human.shieldUpTicks > 0) return human.shieldCoolDown == 0 && human.isBlocking();
     	
         boolean animalAnger = true;
         if (human.getTarget() instanceof Animal animal) {

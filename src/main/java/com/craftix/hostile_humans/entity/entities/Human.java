@@ -319,6 +319,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         if (increase) chance += 0.75;
         if (this.random.nextFloat() < chance) {
             this.shieldCoolDown = 100;
+            this.shieldUpTicks = 0;
             this.stopUsingItem();
             this.level().broadcastEntityEvent(this, (byte) 30);
         }
@@ -553,6 +554,13 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             clearPendingDrinkCleanup();
         }
         if (!this.level().isClientSide && healingItem) {
+            // HumanFood's passive regeneration is intentionally slow.  Apply the
+            // food's normal nutrition when it is actually eaten so each serving
+            // visibly heals, while the existing chain still consumes further food
+            // until the human is recovered or full.
+            if (usedStack.getUseAnimation() == UseAnim.EAT && usedStack.getFoodProperties(this) != null) {
+                this.heal(usedStack.getFoodProperties(this).getNutrition());
+            }
             this.chainingHealingFood = shouldContinueHealingChain(usedStack);
             this.eatingColldown = this.chainingHealingFood ? 0 : 20 * 60;
         }
@@ -752,7 +760,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
         if (!this.resolvedPreAttackBuffThisCombat && this.getTarget() instanceof Player) {
             this.resolvedPreAttackBuffThisCombat = true;
-            this.queuedPreAttackBuff = this.random.nextFloat() < Config.preAttackBuffChance.get();
+            this.queuedPreAttackBuff = this.getTier() == HumanTier.LEVEL2
+                    && this.random.nextFloat() < Config.preAttackBuffChance.get();
         }
 
         if (this.wasEyeInWater) this.ticksEyesOutOfWater = 0;
@@ -1046,9 +1055,12 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         if (getMainHandItem().isEmpty()) {
             if (!equipWeapon(HumanUtil::isTrident))
                 equipWeapon(HumanUtil::isMeleeWeapon);
-        } else if (switchingWeaponCoolDown == 0) {
+        } else if (switchingWeaponCoolDown == 0
+                || (this.getTarget() != null
+                && this.getTarget().distanceTo(this) < 6.0F
+                && HumanUtil.isRangedWeapon(this.getMainHandItem()))) {
             if (this.getTarget() != null && tickCount > 10 && !isUsingItem()) {
-                boolean isTargetFar = this.getTarget().distanceTo(this) >= 3 && this.ticksEyesOutOfWater > 120;
+                boolean isTargetFar = this.getTarget().distanceTo(this) >= 6.0F && this.ticksEyesOutOfWater > 120;
 
                 ItemStack handItem = getItemBySlot(EquipmentSlot.MAINHAND);
                 boolean forcedMelee = this.getHealth() <= this.getMaxHealth() * 0.3f && String.valueOf(getId()).hashCode() % 100 < 20;
@@ -1291,7 +1303,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     public int breathRecoveryTicks;
     public int noSwimAfterBreathTicks;
     public boolean prefersToFloat() {
-        return this.shouldCatchBreath || this.breathRecoveryTicks > 0 || this.noSwimAfterBreathTicks > 0;
+        return this.shouldCatchBreath || this.breathRecoveryTicks > 0;
     }
     protected final WaterBoundPathNavigation waterNavigation;
     protected final GroundPathNavigation groundNavigation;

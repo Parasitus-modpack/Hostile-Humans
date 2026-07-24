@@ -119,9 +119,7 @@ public class HumanEntityWalkControl extends MoveControl {
     }
 
     private boolean tryRunJump(LivingEntity target) {
-        if (!Config.runJump.get()
-                || target == null
-                || this.human.isFleeing
+        if (!Config.runJump.get() || target == null || this.human.isFleeing
                 || this.human.healingAfterFleeTicks > 0
                 || !this.mob.onGround()
                 || !this.mob.isSprinting()
@@ -135,15 +133,8 @@ public class HumanEntityWalkControl extends MoveControl {
             return false;
         }
 
-        double wantedDx = this.wantedX - this.mob.getX();
-        double wantedDz = this.wantedZ - this.mob.getZ();
-        double wantedHorizontalDistSqr = wantedDx * wantedDx + wantedDz * wantedDz;
-        if (wantedHorizontalDistSqr < 2.25D) {
-            return false;
-        }
-
-        double dx = wantedDx;
-        double dz = wantedDz;
+        double dx = target.getX() - this.mob.getX();
+        double dz = target.getZ() - this.mob.getZ();
         double horizontalLength = Math.sqrt(dx * dx + dz * dz);
         if (horizontalLength < 1.0E-4D) {
             return false;
@@ -158,7 +149,7 @@ public class HumanEntityWalkControl extends MoveControl {
         Vec3 current = this.mob.getDeltaMovement();
         double desiredSpeed = Math.max(0.22D, Math.min(0.28D, current.horizontalDistance() + 0.02D));
         this.mob.setDeltaMovement(dx / horizontalLength * desiredSpeed, current.y, dz / horizontalLength * desiredSpeed);
-        this.human.onPlayerJumpCoolDown = 30;
+        this.human.onPlayerJumpCoolDown = 18;
         return true;
     }
 

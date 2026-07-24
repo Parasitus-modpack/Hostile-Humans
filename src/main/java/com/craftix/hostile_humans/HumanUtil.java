@@ -5,7 +5,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -99,10 +98,6 @@ public class HumanUtil {
         return !value.isEmpty() && (value.getItem() instanceof ShieldItem);
     }
 
-    public static boolean isConsumable(ItemStack stack) {
-        return stack.getCount() > 0 && (stack.getUseAnimation() == UseAnim.EAT || stack.getUseAnimation() == UseAnim.DRINK);
-    }
-
     public static boolean canStartEating(Human human) {
         if (!human.isAlive()) return false;
         if (human.isUsingItem()) return false;
@@ -123,10 +118,6 @@ public class HumanUtil {
         if (human.healingAfterFleeTicks <= 0 && human.tickCount < 20 * 6 + human.lastCombatTime) return false;
 
         return true;
-    }
-
-    public static boolean isEmptyFood(ItemStack stack) {
-        return stack.isEmpty() || stack.is(Items.GLASS_BOTTLE) || stack.is(Items.BOWL);
     }
 
     public static boolean isLookingAtTarget(LivingEntity mob, Entity target) {
