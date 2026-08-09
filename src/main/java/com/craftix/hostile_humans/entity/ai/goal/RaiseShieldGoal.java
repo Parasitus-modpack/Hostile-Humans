@@ -12,15 +12,12 @@ import net.minecraft.world.entity.monster.Ravager;
 import net.minecraft.world.item.CrossbowItem;
 import net.minecraftforge.common.ToolActions;
 
-import java.util.EnumSet;
-
 public class RaiseShieldGoal extends Goal {
 
     public final Human human;
 
     public RaiseShieldGoal(Human guard) {
         this.human = guard;
-        this.setFlags(EnumSet.of(Goal.Flag.LOOK));
     }
 
     @Override

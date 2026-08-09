@@ -11,7 +11,6 @@ public class Config {
     public static ForgeConfigSpec.ConfigValue<String> disabledStructures;
     public static ForgeConfigSpec.ConfigValue<Integer> maxTargeting;
     public static ForgeConfigSpec.ConfigValue<Double> greetChance;
-    public static ForgeConfigSpec.ConfigValue<Double> fleeChance;
     public static ForgeConfigSpec.ConfigValue<Double> runAwayMiddleFightChance;
     public static ForgeConfigSpec.ConfigValue<Double> fleeHpPercent;
     public static ForgeConfigSpec.ConfigValue<Double> healCombatPercent;
@@ -39,8 +38,7 @@ public class Config {
         disabledStructures = BUILDER.comment("Disabled Structures (comma separated) ex. cottage, cozy_spruce_house, desert_house, desert_house_2, desert_house_3, desert_house_4, farmhouse, fortress_bottom, fortress_top, igloo, large_desert_house, large_spruce_home, oak_house, oak_house_2, oak_house_3, oak_house_4, oak_house_5, savanna_house_2, spruce_cottage, spruce_fort, spruce_house, thin_spruce, tiny_acacia, tiny_igloo, tiny_spruce_house, tower, warehouse").define("disabled_structures", "");
         maxTargeting = BUILDER.comment("The max amount of humans that can attack you at the same time").define("max_targeting", 3);
         greetChance = BUILDER.comment("The chance to send a chat message to the player upon targeting them").define("greet_chance", 0.05d);
-        fleeChance = BUILDER.comment("The chance to run away from the player during the battle").define("flee_chance", 0.3d);
-        runAwayMiddleFightChance = BUILDER.comment("Chance that a human chooses to run away once low health mid-fight").define("run_away_middle_fight_chance", 0.5d);
+        runAwayMiddleFightChance = BUILDER.comment("Chance [0..1] that a low-health human chooses to flee during a combat encounter").defineInRange("run_away_middle_fight_chance", 0.5d, 0.0d, 1.0d);
         fleeHpPercent = BUILDER.comment("The % of hp to start fleeing").define("flee_hp", 0.15d);
         healCombatPercent = BUILDER.comment("The % of hp to attempt healing during combat").define("heal_combat", 0.5d);
         preAttackBuffChance = BUILDER.comment("Chance that a human will use a pre-attack buff item once after spotting a player").define("pre_attack_buff_chance", 0.05d);

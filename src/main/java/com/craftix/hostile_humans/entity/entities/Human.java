@@ -560,15 +560,19 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             clearPendingDrinkCleanup();
         }
         if (!this.level().isClientSide && healingItem) {
-            // HumanFood's passive regeneration is intentionally slow.  Apply the
-            // food's normal nutrition when it is actually eaten so each serving
-            // visibly heals, while the existing chain still consumes further food
-            // until the human is recovered or full.
             if (usedStack.getUseAnimation() == UseAnim.EAT && usedStack.getFoodProperties(this) != null) {
                 this.heal(usedStack.getFoodProperties(this).getNutrition());
             }
             this.chainingHealingFood = shouldContinueHealingChain(usedStack);
             this.eatingColldown = this.chainingHealingFood ? 0 : 20 * 60;
+
+             if (this.healingAfterFleeTicks > 0 && !HumanUtil.isLowHp(this)) {
+                this.healingAfterFleeTicks = 0;
+            }
+            if (!this.chainingHealingFood) {
+                this.tryEquipWeapon();
+                this.setCombatTask();
+            }
         }
         if (!this.level().isClientSide) {
             this.consumingPreAttackBuff = false;

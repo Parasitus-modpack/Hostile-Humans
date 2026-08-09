@@ -25,7 +25,13 @@ public class HumanEntityWalkControl extends MoveControl {
 
     @Override
     public void tick() {
-        this.updateSprintState();
+        if (!this.mob.onGround() && this.operation == MoveControl.Operation.MOVE_TO) {
+            this.operation = MoveControl.Operation.JUMPING;
+        }
+
+        if (this.mob.onGround()) {
+            this.updateSprintState();
+        }
         float f9;
         if (this.operation == MoveControl.Operation.STRAFE) {
             float f = (float) this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED);
@@ -69,6 +75,13 @@ public class HumanEntityWalkControl extends MoveControl {
             this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
 
             LivingEntity target = this.human.getTarget();
+            if (this.human.shouldUseWaterMovement()) {
+                double verticalSpeed = Mth.clamp(dy * 0.1D, -0.08D, 0.08D);
+                Vec3 movement = this.mob.getDeltaMovement();
+                this.mob.setDeltaMovement(movement.x, verticalSpeed, movement.z);
+                return;
+            }
+
             if (this.tryRunJump(target)) {
                 return;
             }
@@ -90,9 +103,9 @@ public class HumanEntityWalkControl extends MoveControl {
                         && this.mob.onGround()
                         && !this.mob.isSprinting()
                         && this.human.onPlayerJumpCoolDown <= 0
-                        && target.distanceTo(this.human) < 1.8F
+                        && target.distanceTo(this.human) < 1.35F
                         && HumanUtil.isMeleeWeapon(this.human.getMainHandItem())
-                        && this.human.getRandom().nextFloat() < 0.12F) {
+                        && this.human.getRandom().nextFloat() < 0.01F) {
                     this.mob.getJumpControl().jump();
                     this.operation = MoveControl.Operation.JUMPING;
 
@@ -105,7 +118,7 @@ public class HumanEntityWalkControl extends MoveControl {
                         this.mob.setDeltaMovement(this.mob.getDeltaMovement().add(boostX, 0.0D, boostZ));
                     }
 
-                    this.human.onPlayerJumpCoolDown = 20;
+                    this.human.onPlayerJumpCoolDown = 80;
                 }
             }
         } else if (this.operation == MoveControl.Operation.JUMPING) {
@@ -125,7 +138,7 @@ public class HumanEntityWalkControl extends MoveControl {
                 || !this.mob.onGround()
                 || !this.mob.isSprinting()
                 || this.human.onPlayerJumpCoolDown > 0
-                || target.distanceTo(this.human) < 5.0F
+                || target.distanceTo(this.human) < 7.0F
                 || target.distanceTo(this.human) > 14.0F
                 || Math.abs(target.getY() - this.human.getY()) > 2.5D
                 || this.human.isHolding(HumanUtil::isRangedWeapon)
@@ -150,7 +163,7 @@ public class HumanEntityWalkControl extends MoveControl {
         Vec3 current = this.mob.getDeltaMovement();
         double desiredSpeed = Math.max(0.22D, Math.min(0.28D, current.horizontalDistance() + 0.02D));
         this.mob.setDeltaMovement(dx / horizontalLength * desiredSpeed, current.y, dz / horizontalLength * desiredSpeed);
-        this.human.onPlayerJumpCoolDown = 24;
+        this.human.onPlayerJumpCoolDown = 40;
         return true;
     }
 
@@ -163,7 +176,7 @@ public class HumanEntityWalkControl extends MoveControl {
                 && !this.human.isUsingItem()
                 && !this.human.isHolding(HumanUtil::isRangedWeapon)
                 && !HumanUtil.isTrident(this.human.getMainHandItem())
-                && this.human.distanceTo(target) >= 5.0F
+                && this.human.distanceTo(target) >= 7.0F
                 && !this.human.getNavigation().isDone();
         this.human.setSprinting(shouldSprint);
     }
