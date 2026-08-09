@@ -88,6 +88,7 @@ public class HumanEntityWalkControl extends MoveControl {
             if (this.operation != MoveControl.Operation.JUMPING && Config.attackJump.get()) {
                 if (target != null
                         && this.mob.onGround()
+                        && !this.mob.isSprinting()
                         && this.human.onPlayerJumpCoolDown <= 0
                         && target.distanceTo(this.human) < 1.8F
                         && HumanUtil.isMeleeWeapon(this.human.getMainHandItem())
@@ -104,7 +105,7 @@ public class HumanEntityWalkControl extends MoveControl {
                         this.mob.setDeltaMovement(this.mob.getDeltaMovement().add(boostX, 0.0D, boostZ));
                     }
 
-                    this.human.onPlayerJumpCoolDown = 12;
+                    this.human.onPlayerJumpCoolDown = 20;
                 }
             }
         } else if (this.operation == MoveControl.Operation.JUMPING) {
@@ -149,7 +150,7 @@ public class HumanEntityWalkControl extends MoveControl {
         Vec3 current = this.mob.getDeltaMovement();
         double desiredSpeed = Math.max(0.22D, Math.min(0.28D, current.horizontalDistance() + 0.02D));
         this.mob.setDeltaMovement(dx / horizontalLength * desiredSpeed, current.y, dz / horizontalLength * desiredSpeed);
-        this.human.onPlayerJumpCoolDown = 18;
+        this.human.onPlayerJumpCoolDown = 24;
         return true;
     }
 

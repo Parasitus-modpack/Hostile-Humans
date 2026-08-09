@@ -10,6 +10,9 @@ import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.monster.Ravager;
 import net.minecraft.world.item.CrossbowItem;
+import net.minecraftforge.common.ToolActions;
+
+import java.util.EnumSet;
 
 public class RaiseShieldGoal extends Goal {
 
@@ -17,11 +20,17 @@ public class RaiseShieldGoal extends Goal {
 
     public RaiseShieldGoal(Human guard) {
         this.human = guard;
+        this.setFlags(EnumSet.of(Goal.Flag.LOOK));
     }
 
     @Override
     public boolean canUse() {
-        if (human.shieldUpTicks > 0) return human.shieldCoolDown == 0 && human.isBlocking();
+        if (!human.getOffhandItem().getItem().canPerformAction(human.getOffhandItem(), ToolActions.SHIELD_BLOCK)
+                || human.shieldCoolDown > 0
+                || HumanUtil.isRangedWeapon(human.getMainHandItem())) {
+            return false;
+        }
+        if (human.isBlocking()) return human.shieldUpTicks > 0;
     	
         boolean animalAnger = true;
         if (human.getTarget() instanceof Animal animal) {
@@ -30,12 +39,7 @@ public class RaiseShieldGoal extends Goal {
             }
         }
 
-        if (human.getRandom().nextFloat() < 0.08) {
-            human.shieldCoolDown = 6;
-            return false;
-        }
-
-        return !CrossbowItem.isCharged(human.getMainHandItem()) && (human.getOffhandItem().getItem().canPerformAction(human.getOffhandItem(), net.minecraftforge.common.ToolActions.SHIELD_BLOCK) && raiseShield() && human.shieldCoolDown == 0 && animalAnger);
+        return !CrossbowItem.isCharged(human.getMainHandItem()) && raiseShield() && animalAnger;
     }
 
     @Override
@@ -54,6 +58,7 @@ public class RaiseShieldGoal extends Goal {
     @Override
     public void stop() {
         human.stopUsingItem();
+        if (human.shieldCoolDown == 0) human.shieldCoolDown = 6;
     }
 
     protected boolean raiseShield() {

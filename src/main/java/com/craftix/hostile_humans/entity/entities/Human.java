@@ -164,7 +164,9 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         this.moveControl = new HumanEntityWalkControl(this);
         this.setPathfindingMalus(BlockPathTypes.WATER, 0.0F);
         this.waterNavigation = new WaterBoundPathNavigation(this, level);
+        this.waterNavigation.setCanFloat(true);
         this.groundNavigation = new GroundPathNavigation(this, level);
+        this.groundNavigation.setCanFloat(true);
         this.groundNavigation.setCanOpenDoors(true);
         this.groundNavigation.setCanPassDoors(true);
         this.groundNavigation.setMaxVisitedNodesMultiplier(50);
@@ -256,7 +258,8 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         goalSelector.addGoal(10, new RandomLookAroundGoal(this));
         goalSelector.addGoal(11, new HumanLookAtPlayerGoal(this, Player.class, 64.0F));
         targetSelector.addGoal(0, new HurtByTargetGoal(this).setAlertOthers());
-        targetSelector.addGoal(2, new NearestAttackableTargetGoalCustom<>(this, LivingEntity.class, 13, true, false, this::isAngryAt));
+        targetSelector.addGoal(2, new NearestAttackableTargetGoalCustom<>(this, LivingEntity.class, 13, true, false,
+                target -> !(target instanceof Player) && this.isAngryAt(target)));
         targetSelector.addGoal(1, new NearestAttackableTargetGoalWithHumanLimiter<>(this, Player.class, true));
         targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, Mob.class, 5, false, false, (target) -> {
         	if (target instanceof EnderMan) return false;
@@ -310,8 +313,11 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     @Override
     protected void blockUsingShield(LivingEntity entityIn) {
+        ItemStack shieldStack = this.getUseItem();
+        boolean shieldDisabled = !shieldStack.isEmpty()
+                && entityIn.getMainHandItem().canDisableShield(shieldStack, this, entityIn);
         super.blockUsingShield(entityIn);
-        if (entityIn.getMainHandItem().canDisableShield(this.useItem, this, entityIn)) this.disableShield(true);
+        if (shieldDisabled) this.disableShield(true);
     }
 
     public void disableShield(boolean increase) {
@@ -893,7 +899,9 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     private void tryEquipPotion() {
         if (getTier() != HumanTier.LEVEL2) return;
-        if (getTarget() != null && (tickCount + String.valueOf(getId()).hashCode()) % throwPotionsEvery.get() == 0) {
+        if (getTarget() != null
+                && this.distanceToSqr(getTarget()) >= 16.0D
+                && (tickCount + String.valueOf(getId()).hashCode()) % throwPotionsEvery.get() == 0) {
             Potion potion = Potions.HARMING;
             if (!getTarget().hasEffect(MobEffects.MOVEMENT_SLOWDOWN)) {
                 potion = Potions.SLOWNESS;
@@ -1313,9 +1321,6 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         LivingEntity livingentity = this.getTarget();
         if (livingentity == null) return false;
 
-        boolean targetInWater = livingentity.isEyeInFluid(FluidTags.WATER) || livingentity.isInWater();
-        if (!targetInWater) return false;
-
         boolean targetFar = this.distanceTo(livingentity) >= 6.0F;
         boolean targetBelow = livingentity.getY() < this.getY() - 0.5D;
         return targetFar && targetBelow;
@@ -1330,7 +1335,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
 
     public boolean shouldUseWaterMovement() {
-        return this.isInWater() && (this.prefersToFloat() || (this.hasSwimmingClearance() && this.wantsToSwim()));
+        return this.isInWater() && this.hasSwimmingClearance() && this.wantsToSwim();
     }
 
     public boolean shouldJumpOutOfWaterToward(double wantedX, double wantedY, double wantedZ) {
@@ -1373,7 +1378,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     public void travel(Vec3 p_32394_) {
        if (this.isEffectiveAi() && this.shouldUseWaterMovement()) {
-          this.moveRelative(0.01F, p_32394_);
+          this.moveRelative(0.04F, p_32394_);
           this.move(MoverType.SELF, this.getDeltaMovement());
           this.setDeltaMovement(this.getDeltaMovement().scale(0.9D));
           this.setPose(Pose.SWIMMING);
@@ -1387,10 +1392,16 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     public void updateSwimming() {
        if (!this.level().isClientSide) {
           if (this.isEffectiveAi() && this.shouldUseWaterMovement()) {
-             this.navigation = this.waterNavigation;
+             if (this.navigation != this.waterNavigation) {
+                 this.navigation.stop();
+                 this.navigation = this.waterNavigation;
+             }
              this.setSwimming(true);
           } else {
-             this.navigation = this.groundNavigation;
+             if (this.navigation != this.groundNavigation) {
+                 this.navigation.stop();
+                 this.navigation = this.groundNavigation;
+             }
              this.setSwimming(false);
           }
        }

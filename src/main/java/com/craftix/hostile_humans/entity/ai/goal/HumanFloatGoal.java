@@ -15,7 +15,7 @@ public class HumanFloatGoal extends Goal {
     }
 
     public boolean canUse() {
-        if (!this.mob.prefersToFloat()) return false;
+        if (this.mob.wantsToSwim()) return false;
         return this.mob.isInWater() || this.mob.isInLava();
     }
 

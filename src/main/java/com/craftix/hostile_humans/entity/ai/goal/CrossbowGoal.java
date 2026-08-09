@@ -61,13 +61,16 @@ public class CrossbowGoal<T extends HumanEntity & RangedAttackMob & CrossbowAtta
     public void stop() {
         super.stop();
         this.mob.setAggressive(false);
-        this.mob.setTarget(null);
         this.seeTime = 0;
         if (this.mob.isUsingItem()) {
+            ItemStack weapon = this.mob.getUseItem();
             this.mob.stopUsingItem();
             this.mob.setChargingCrossbow(false);
-            CrossbowItem.setCharged(this.mob.getUseItem(), false);
+            if (weapon.getItem() instanceof CrossbowItem) {
+                CrossbowItem.setCharged(weapon, false);
+            }
         }
+        this.crossbowState = UNCHARGED;
 
         boolean isSit = mob.isOrderedToSit();
         if (isSit) {
@@ -124,8 +127,10 @@ public class CrossbowGoal<T extends HumanEntity & RangedAttackMob & CrossbowAtta
                     this.mob.setChargingCrossbow(true);
                 }
             } else if (this.crossbowState == CHARGING) {
-                if (!this.mob.isUsingItem()) {
+                if (!this.mob.isUsingItem() || !(this.mob.getUseItem().getItem() instanceof CrossbowItem)) {
                     this.crossbowState = UNCHARGED;
+                    this.mob.setChargingCrossbow(false);
+                    return;
                 }
 
                 int i = this.mob.getTicksUsingItem();
