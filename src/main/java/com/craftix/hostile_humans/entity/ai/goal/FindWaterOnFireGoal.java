@@ -28,9 +28,12 @@ public class FindWaterOnFireGoal extends Goal {
 
     public boolean canUse() {
         if (mob.getEffect(MobEffects.FIRE_RESISTANCE) != null) return false;
-        if (this.mob.getTarget() != null) {
+        if (!this.mob.isOnFire()) {
             return false;
-        } else if (!this.mob.isOnFire()) {
+        }
+        if (this.mob.getTarget() != null
+                && !(this.mob.getRemainingFireTicks() > 100
+                && this.mob.getHealth() < this.mob.getMaxHealth() * 0.6F)) {
             return false;
         }
         return this.setWantedPos();

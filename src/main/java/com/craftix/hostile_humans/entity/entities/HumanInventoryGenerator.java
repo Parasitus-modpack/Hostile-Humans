@@ -62,6 +62,10 @@ public class HumanInventoryGenerator {
             equipArmorSet(human, armorSet, loadout.rules.damagePercentMin, loadout.rules.damagePercentMax);
         }
 
+        if (ModList.get().isLoaded("immersive_armors") && random.nextFloat() < 0.4F) {
+            com.craftix.hostile_humans.compat.ImmersiveArmors.apply(human, loadout.rules.damagePercentMin, loadout.rules.damagePercentMax);
+        }
+
         human.applySpawnedWeaponEnchantments(random, loadout.rules.enchantChance);
         for (EquipmentSlot equipmentSlot : EquipmentSlot.values()) {
             if (equipmentSlot.getType() == EquipmentSlot.Type.ARMOR) {

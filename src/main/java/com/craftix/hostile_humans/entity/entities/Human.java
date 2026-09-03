@@ -7,9 +7,11 @@ import com.craftix.hostile_humans.entity.HumanEntity;
 import com.craftix.hostile_humans.entity.PotionRangedAttackMob;
 import com.craftix.hostile_humans.entity.ai.control.HumanEntityWalkControl;
 import com.craftix.hostile_humans.entity.ai.goal.*;
+import com.craftix.hostile_humans.entity.ai.navigation.HumanGroundNavigation;
 import com.google.common.collect.Maps;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
@@ -20,6 +22,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.vehicle.Boat;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -52,6 +55,7 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import net.minecraft.world.phys.Vec3;
@@ -165,7 +169,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         this.setPathfindingMalus(BlockPathTypes.WATER, 0.0F);
         this.waterNavigation = new WaterBoundPathNavigation(this, level);
         this.waterNavigation.setCanFloat(true);
-        this.groundNavigation = new GroundPathNavigation(this, level);
+        this.groundNavigation = new HumanGroundNavigation(this, level);
         this.groundNavigation.setCanFloat(true);
         this.groundNavigation.setCanOpenDoors(true);
         this.groundNavigation.setCanPassDoors(true);
@@ -186,7 +190,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     }
 
     protected PathNavigation createNavigation(Level p_33802_) {
-        return new GroundPathNavigation(this, p_33802_);
+        return new HumanGroundNavigation(this, p_33802_);
     }
 
     private void initTeam(HumanTier type) {
@@ -244,7 +248,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         goalSelector.addGoal(-5, new LadderClimbGoal(this));
         goalSelector.addGoal(0, new FindWaterOnFireGoal(this, 1.2D));
         goalSelector.addGoal(0, new RunFromTarget(this, 6.0F, 1.0D, 1.2D));
-        goalSelector.addGoal(0, new AvoidTNTGoal(this, 6.0F, 1.0D, 1.2D));
+        goalSelector.addGoal(-3, new AvoidTNTGoal(this, 6.0F, 1.0D, 1.2D));
         goalSelector.addGoal(0, new InvestigateSoundGoal(this, 1.0F));
         goalSelector.addGoal(1, new PotionRangedAttackGoal(this, 1.0, 10, 10));
         goalSelector.addGoal(3, new RaiseShieldGoal(this));
@@ -267,6 +271,11 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
                 return target instanceof Animal && !(target instanceof Bee) && String.valueOf(target.getId()).hashCode() % 100 < 30; //only attack 30% of animals
             }
             return target instanceof Enemy && (!(target instanceof Creeper) || HumanUtil.shouldFightCreeper(this));
+        }));
+        targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Player.class, 10, false, true, (target) -> {
+            if (!(target instanceof Player playerTarget)) return false;
+            if (playerTarget.isSpectator() || playerTarget.isCreative() || playerTarget.isShiftKeyDown()) return false;
+            return this.distanceToSqr(playerTarget) < 100.0D;
         }));
     }
 
@@ -833,12 +842,14 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
         if (this.getAirSupply() <= this.getMaxAirSupply() / 8 && !shouldCatchBreath) {
             shouldCatchBreath = true;
-            breathRecoveryTicks = this.getRandom().nextInt(20 * 3, 20 * 5 + 1);
+            boolean inCombat = this.getTarget() != null;
+            breathRecoveryTicks = inCombat ? this.getRandom().nextInt(15, 31) : this.getRandom().nextInt(20 * 3, 20 * 5 + 1);
         }
-        if (shouldCatchBreath && !this.isEyeInFluid(FluidTags.WATER) && breathRecoveryTicks > 0) {
+        if (!this.isEyeInFluid(FluidTags.WATER) && breathRecoveryTicks > 0) {
             breathRecoveryTicks--;
         }
-        if (shouldCatchBreath && breathRecoveryTicks <= 0 && !this.isEyeInFluid(FluidTags.WATER)) {
+        if (shouldCatchBreath && !this.isEyeInFluid(FluidTags.WATER)
+                && (breathRecoveryTicks <= 0 || this.getAirSupply() >= this.getMaxAirSupply())) {
             shouldCatchBreath = false;
             this.noSwimAfterBreathTicks = Math.max(this.noSwimAfterBreathTicks, Math.max(0, Config.postBreathNoSwimTicks.get()));
         }
@@ -1092,6 +1103,15 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     @Override
     public void aiStep() {
         super.aiStep();
+        this.updateSwimming();
+
+        if (this.tickCount % 20 == 0 && !this.level().isClientSide && WATER_DEBUG && this.isInWater()) {
+            HostileHumans.LOGGER.info("[HH-Water] TICK {} | submerged={} below=[{}] floor={} shallow={} latch={} lock={} hold={} prefFloat={} catchBreath={} air={} eyeIn={} feetIn={} onGround={} pose={} exitYSet={} target={}",
+                    this.blockPosition(), this.getSubmersionDepth(), this.describeBelow(), this.describeFloor(), this.isInShallowWater(), this.latchedWaterMovement, this.waterMovementLockTicks,
+                    this.swimHoldTicks, this.prefersToFloat(), this.shouldCatchBreath, this.getAirSupply(),
+                    this.isEyeInFluid(FluidTags.WATER), this.feetInWater(), this.onGround(), this.getPose(),
+                    this.hasDetectedExitY(), this.getTarget() != null);
+        }
 
         if (tickCount % 220 == 0 && getTarget() == null && !this.level().isClientSide) {
             if (this.getData() != null) for (ItemStack stack : this.getData().getInventoryItems()) {
@@ -1100,6 +1120,23 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             else {
                 HostileHumans.LOGGER.warn("Missing data?" + " " + this);
                 this.remove(RemovalReason.DISCARDED);
+            }
+        }
+
+        if (!this.level().isClientSide) {
+            BlockPos cobwebPos = this.level().getBlockState(this.blockPosition()).is(Blocks.COBWEB)
+                    ? this.blockPosition()
+                    : (this.level().getBlockState(BlockPos.containing(this.getEyePosition())).is(Blocks.COBWEB)
+                    ? BlockPos.containing(this.getEyePosition()) : null);
+            if (cobwebPos != null) {
+                this.cobwebStuckTicks++;
+                if (this.cobwebStuckTicks > 8) {
+                    this.cobwebStuckTicks = 0;
+                    this.level().destroyBlock(cobwebPos, true, this);
+                    this.swing(InteractionHand.MAIN_HAND);
+                }
+            } else {
+                this.cobwebStuckTicks = 0;
             }
         }
 
@@ -1113,6 +1150,14 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         if (this.meleeFlurryDamageTicks > 0) --this.meleeFlurryDamageTicks;
 
         this.updateSwingTime();
+    }
+
+    @Override
+    public boolean startRiding(Entity vehicle, boolean force) {
+        if (vehicle instanceof Boat) {
+            return false;
+        }
+        return super.startRiding(vehicle, force);
     }
 
     @Override
@@ -1315,19 +1360,13 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
     public int breathRecoveryTicks;
     public int noSwimAfterBreathTicks;
     public boolean prefersToFloat() {
-        return this.shouldCatchBreath || this.breathRecoveryTicks > 0;
+        if (this.shouldCatchBreath || this.breathRecoveryTicks > 0) return true;
+        return this.getTarget() == null && this.feetInWater() && !this.isInShallowWater();
     }
     protected final WaterBoundPathNavigation waterNavigation;
     protected final GroundPathNavigation groundNavigation;
     public boolean wantsToSwim() {
-        if (this.shouldCatchBreath || this.breathRecoveryTicks > 0 || this.noSwimAfterBreathTicks > 0) return false;
-        if (!this.hasSwimmingClearance()) return false;
-        LivingEntity livingentity = this.getTarget();
-        if (livingentity == null) return false;
-
-        boolean targetFar = this.distanceTo(livingentity) >= 6.0F;
-        boolean targetBelow = livingentity.getY() < this.getY() - 0.5D;
-        return targetFar && targetBelow;
+        return this.shouldUseWaterMovement();
     }
 
     public boolean hasSwimmingClearance() {
@@ -1338,14 +1377,152 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
                 && this.level().getBlockState(upperPos).getCollisionShape(this.level(), upperPos).isEmpty();
     }
 
+    public boolean feetInWater() {
+        return this.level().getFluidState(this.blockPosition()).is(FluidTags.WATER);
+    }
+
+    public double getFluidSurfaceY() {
+        BlockPos pos = this.blockPosition();
+        BlockPos top = pos;
+        for (int i = 0; i < 4 && this.level().getFluidState(pos).is(FluidTags.WATER); i++) {
+            top = pos;
+            pos = pos.above();
+        }
+        return top.getY() + this.level().getFluidState(top).getOwnHeight();
+    }
+
+    public double getSubmersionDepth() {
+        if (!this.feetInWater()) return 0.0D;
+        return Math.round((this.getFluidSurfaceY() - this.getY()) * 10.0D) / 10.0D;
+    }
+
+    private double lastDetectedExitY = Double.NaN;
+
+    private int swimHoldTicks;
+
+    private int cobwebStuckTicks;
+
+    private boolean latchedWaterMovement;
+
+    private int waterMovementLockTicks;
+
+    private int waterMovementLatchTick = -1;
+
+    private boolean lastReportedWaterMovement;
+
+    private static final boolean WATER_DEBUG = false;
+
+    private static final int WADE_DEPTH = 2;
+
+    public BlockPos findWadeFloor() {
+        BlockPos pos = this.blockPosition();
+        for (int i = 0; i < WADE_DEPTH; i++) {
+            pos = pos.below();
+            if (!this.level().getFluidState(pos).is(FluidTags.WATER)) {
+                return this.level().getBlockState(pos).blocksMotion() ? pos : null;
+            }
+        }
+        return null;
+    }
+
+    public String describeFloor() {
+        BlockPos floor = this.findWadeFloor();
+        if (floor == null) return "none";
+        return BuiltInRegistries.BLOCK.getKey(this.level().getBlockState(floor).getBlock()) + "@" + floor.getY();
+    }
+
+    public String describeBelow() {
+        StringBuilder sb = new StringBuilder();
+        BlockPos pos = this.blockPosition().below();
+        for (int i = 0; i < 3; i++) {
+            BlockState state = this.level().getBlockState(pos);
+            if (state.getFluidState().is(FluidTags.WATER) && state.blocksMotion()) {
+                sb.append("logged:").append(BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath());
+            } else if (state.getFluidState().is(FluidTags.WATER)) {
+                sb.append("fluid:").append(BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath());
+            } else {
+                sb.append(BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath());
+            }
+            if (i < 2) sb.append(',');
+            pos = pos.below();
+        }
+        return sb.toString();
+    }
+
+    public boolean isInShallowWater() {
+        return this.feetInWater() && this.findWadeFloor() != null;
+    }
+
+    public boolean hasDetectedExitY() {
+        return !Double.isNaN(this.lastDetectedExitY);
+    }
+
+    public double getDetectedExitY() {
+        return this.lastDetectedExitY;
+    }
+
     public boolean shouldUseWaterMovement() {
-        return this.isInWater() && this.hasSwimmingClearance() && this.wantsToSwim();
+        boolean result = this.computeShouldUseWaterMovement();
+        if (!this.level().isClientSide && WATER_DEBUG && result != this.lastReportedWaterMovement) {
+            this.lastReportedWaterMovement = result;
+            HostileHumans.LOGGER.info("[HH-Water] FLIP {} -> {} | submerged={} floor={} shallow={} lock={} hold={} prefFloat={} catchBreath={} air={} eyeIn={} feetIn={} onGround={} pose={} exitYSet={}",
+                    this.blockPosition(), result, this.getSubmersionDepth(), this.describeFloor(), this.isInShallowWater(), this.waterMovementLockTicks, this.swimHoldTicks,
+                    this.prefersToFloat(), this.shouldCatchBreath, this.getAirSupply(), this.isEyeInFluid(FluidTags.WATER),
+                    this.feetInWater(), this.onGround(), this.getPose(), this.hasDetectedExitY());
+        }
+        return result;
+    }
+
+    private boolean computeShouldUseWaterMovement() {
+        boolean panicSurface = this.prefersToFloat()
+                && this.getAirSupply() <= this.getMaxAirSupply() / 4
+                && this.isInWater()
+                && this.isEyeInFluid(FluidTags.WATER);
+        if (panicSurface) {
+            this.latchedWaterMovement = true;
+            this.waterMovementLockTicks = 20;
+            return true;
+        }
+        LivingEntity chaseTarget = this.getTarget();
+        boolean chaseDive = chaseTarget != null && !this.isFleeing
+                && this.getAirSupply() >= this.getMaxAirSupply() * 3 / 4
+                && this.isInWater()
+                && !this.isInShallowWater()
+                && chaseTarget.getY() < this.getY() - 0.5D;
+        if (chaseDive) {
+            this.latchedWaterMovement = true;
+            this.waterMovementLockTicks = 20;
+            return true;
+        }
+        if ((this.prefersToFloat() && !this.isEyeInFluid(FluidTags.WATER))
+                || (!this.feetInWater() && this.swimHoldTicks <= 0)) {
+            this.latchedWaterMovement = false;
+            this.waterMovementLockTicks = 0;
+            return false;
+        }
+        if (this.tickCount != this.waterMovementLatchTick) {
+            this.waterMovementLatchTick = this.tickCount;
+            if (this.waterMovementLockTicks > 0) {
+                this.waterMovementLockTicks--;
+            } else {
+                boolean live = this.isEyeInFluid(FluidTags.WATER)
+                        && (this.swimHoldTicks > 0
+                                || this.feetInWater() && !this.isInShallowWater());
+                if (live != this.latchedWaterMovement) {
+                    this.latchedWaterMovement = live;
+                    this.waterMovementLockTicks = 20;
+                }
+            }
+        }
+        return this.latchedWaterMovement;
     }
 
     public boolean shouldJumpOutOfWaterToward(double wantedX, double wantedY, double wantedZ) {
-        if (!this.isInWater()) {
+        if (!this.feetInWater() && !this.isInWater()) {
+            this.lastDetectedExitY = Double.NaN;
             return false;
         }
+        this.lastDetectedExitY = Double.NaN;
 
         LivingEntity target = this.getTarget();
         boolean targetLeavingWater = target != null && !target.isInWater() && target.getY() >= this.getY() - 0.5D;
@@ -1365,24 +1542,35 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         double stepX = dx / horizontalDistance * 0.6D;
         double stepZ = dz / horizontalDistance * 0.6D;
 
-        BlockPos frontPos = BlockPos.containing(this.getX() + stepX, this.getY() + 0.2D, this.getZ() + stepZ);
-        BlockPos climbPos = frontPos.above();
-        BlockPos headPos = climbPos.above();
+        int baseY = Mth.floor(this.getY());
+        int maxYOffset = 2;
+        for (int yOffset = -1; yOffset <= maxYOffset; yOffset++) {
+            BlockPos frontPos = BlockPos.containing(this.getX() + stepX, baseY + yOffset, this.getZ() + stepZ);
+            BlockPos climbPos = frontPos.above();
+            BlockPos headPos = climbPos.above();
 
-        BlockState frontState = this.level().getBlockState(frontPos);
-        BlockState climbState = this.level().getBlockState(climbPos);
-        BlockState headState = this.level().getBlockState(headPos);
+            BlockState frontState = this.level().getBlockState(frontPos);
+            BlockState climbState = this.level().getBlockState(climbPos);
+            BlockState headState = this.level().getBlockState(headPos);
 
-        boolean canStepOnto = !frontState.getCollisionShape(this.level(), frontPos).isEmpty()
-                && climbState.getCollisionShape(this.level(), climbPos).isEmpty()
-                && headState.getCollisionShape(this.level(), headPos).isEmpty();
+            boolean canStepOnto = !frontState.getCollisionShape(this.level(), frontPos).isEmpty()
+                    && climbState.getCollisionShape(this.level(), climbPos).isEmpty()
+                    && headState.getCollisionShape(this.level(), headPos).isEmpty();
 
-        return canStepOnto || this.horizontalCollision;
+            if (canStepOnto) {
+                this.lastDetectedExitY = frontPos.getY() + 1;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public void travel(Vec3 p_32394_) {
        if (this.isEffectiveAi() && this.shouldUseWaterMovement()) {
-          this.moveRelative(0.04F, p_32394_);
+          LivingEntity chaseTarget = this.getTarget();
+          boolean chasing = chaseTarget != null && !this.isFleeing;
+          this.moveRelative(chasing ? 0.042F : 0.04F, p_32394_);
           this.move(MoverType.SELF, this.getDeltaMovement());
           this.setDeltaMovement(this.getDeltaMovement().scale(0.9D));
           this.setPose(Pose.SWIMMING);
@@ -1395,6 +1583,12 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
 
     public void updateSwimming() {
        if (!this.level().isClientSide) {
+          if (this.feetInWater() && this.hasSwimmingClearance() && !this.prefersToFloat() && !this.isInShallowWater()) {
+              this.swimHoldTicks = 15;
+          } else if (this.swimHoldTicks > 0) {
+              this.swimHoldTicks -= this.feetInWater() ? 1 : 3;
+              if (this.swimHoldTicks < 0) this.swimHoldTicks = 0;
+          }
           if (this.isEffectiveAi() && this.shouldUseWaterMovement()) {
              if (this.navigation != this.waterNavigation) {
                  this.navigation.stop();

@@ -1,7 +1,11 @@
 package com.craftix.hostile_humans.compat;
 
+import com.craftix.hostile_humans.entity.entities.Human;
+import com.craftix.hostile_humans.entity.entities.HumanInventoryGenerator;
+import com.craftix.hostile_humans.entity.entities.HumanTier;
 import immersive_armors.Items;
 import immersive_armors.item.ExtendedArmorMaterial;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 
@@ -12,6 +16,25 @@ import java.util.function.Supplier;
 import static net.minecraft.world.item.Items.IRON_HELMET;
 
 public class ImmersiveArmors {
+
+    public static void apply(Human human, float damagePercentMin, float damagePercentMax) {
+        RandomSource random = human.getRandom();
+        int equipmentLevel;
+        switch (human.getTier()) {
+            case LEVEL2 -> equipmentLevel = random.nextInt(5, 8);
+            case ROAMER -> equipmentLevel = random.nextInt(3, 6);
+            default -> equipmentLevel = random.nextInt(0, 3);
+        }
+        for (EquipmentSlot slot : EquipmentSlot.values()) {
+            if (slot.getType() != EquipmentSlot.Type.ARMOR) {
+                continue;
+            }
+            Item item = getItemForSlot(slot, equipmentLevel);
+            if (item != null) {
+                human.setItemSlot(slot, HumanInventoryGenerator.damage(human, item.getDefaultInstance(), damagePercentMin, damagePercentMax));
+            }
+        }
+    }
 
     public static Item getItemForSlot(EquipmentSlot equipmentSlot, int equipmentLevel) {
         Map<Integer, ExtendedArmorMaterial> items = new HashMap<>() {

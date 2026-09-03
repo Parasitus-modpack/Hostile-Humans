@@ -9,6 +9,7 @@ import com.craftix.hostile_humans.entity.entities.Human;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.item.PrimedTnt;
 
 public class InvestigateSoundGoal extends Goal {
 	protected final Mob mob;
@@ -32,6 +33,7 @@ public class InvestigateSoundGoal extends Goal {
 	public boolean canUse() {
 		if (this.mob.isSleeping()) return false;
 		if (this.mob.getTarget() != null) return false;
+		if (this.nearPrimedTnt()) return false;
 		if (this.calmDown > 0) {
 			--this.calmDown;
 			return false;
@@ -44,10 +46,15 @@ public class InvestigateSoundGoal extends Goal {
 		}
 	}
 
+	private boolean nearPrimedTnt() {
+		return !this.mob.level().getEntitiesOfClass(PrimedTnt.class, this.mob.getBoundingBox().inflate(16.0D, 3.0D, 16.0D)).isEmpty();
+	}
+
 	/**
 	 * Returns whether an in-progress EntityAIBase should continue executing
 	 */
 	public boolean canContinueToUse() {
+		if (this.nearPrimedTnt()) return false;
 		if (this.mob.blockPosition().distSqr(this.pos) < 5D && this.hasInvestigated) {
 			return false;
 		}
