@@ -1,6 +1,5 @@
 package com.craftix.hostile_humans.entity.ai.goal;
 
-import com.craftix.hostile_humans.Config;
 import com.craftix.hostile_humans.HumanUtil;
 import com.craftix.hostile_humans.entity.entities.Human;
 import net.minecraft.world.entity.EntitySelector;
