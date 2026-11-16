@@ -1,5 +1,6 @@
 package com.craftix.hostile_humans.compat;
 
+import com.craftix.hostile_humans.HostileHumans;
 import com.natamus.collective_common_forge.functions.EntityFunctions;
 import com.natamus.villagernames_common_forge.util.Names;
 import net.minecraft.world.entity.Entity;
@@ -9,11 +10,19 @@ import java.util.List;
 
 public class CollectiveVillagerNames {
 
+    private static boolean available = true;
+
     public static void nameEntity(Entity e) {
-        EntityFunctions.nameEntity(e, Names.getRandomName());
+        if (!available) return;
+        try {
+            EntityFunctions.nameEntity(e, Names.getRandomName());
+        } catch (LinkageError error) {
+            disable(error);
+        }
     }
 
     public static void addCustomName(String name) {
+        if (!available) return;
         try {
             Field field = Names.class.getField("customnames");
             Object fieldValue = field.get(null);
@@ -23,6 +32,13 @@ public class CollectiveVillagerNames {
                 mutableList.add(name);
             }
         } catch (ReflectiveOperationException ignored) {
+        } catch (LinkageError error) {
+            disable(error);
         }
+    }
+
+    private static void disable(LinkageError error) {
+        available = false;
+        HostileHumans.LOGGER.warn("Villager Names integration disabled, this version is not compatible: {}", error.toString());
     }
 }

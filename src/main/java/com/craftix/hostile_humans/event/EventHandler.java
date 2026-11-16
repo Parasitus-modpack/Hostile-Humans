@@ -52,9 +52,9 @@ public class EventHandler {
 
     @SubscribeEvent
     public void serverStart(ServerStartedEvent event) {
-    	HostileHumans.patreonNames.forEach(name -> {
-            CollectiveVillagerNames.addCustomName(name);
-    	});
+            if (ModList.get().isLoaded("villagernames")) {
+            HostileHumans.patreonNames.forEach(CollectiveVillagerNames::addCustomName);
+        }
     	
         if (!addedFarmerItems && ModList.get().isLoaded("farmersdelight")) {
             FarmersDelight.addFoodItems();

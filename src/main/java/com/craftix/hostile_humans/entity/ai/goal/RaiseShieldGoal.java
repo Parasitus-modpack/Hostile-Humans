@@ -27,6 +27,8 @@ public class RaiseShieldGoal extends Goal {
                 || HumanUtil.isRangedWeapon(human.getMainHandItem())) {
             return false;
         }
+        if (human.isUsingItem() && !isUsingShield()) return false;
+        if (human.isInWater() && !human.onGround()) return false;
         if (human.isBlocking()) return human.shieldUpTicks > 0;
     	
         boolean animalAnger = true;
@@ -41,7 +43,11 @@ public class RaiseShieldGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        return this.canUse();
+        return isUsingShield() && this.canUse();
+    }
+
+    private boolean isUsingShield() {
+        return human.isUsingItem() && human.getUseItem().canPerformAction(ToolActions.SHIELD_BLOCK);
     }
 
     @Override
@@ -54,7 +60,7 @@ public class RaiseShieldGoal extends Goal {
 
     @Override
     public void stop() {
-        human.stopUsingItem();
+        if (isUsingShield()) human.stopUsingItem();
         if (human.shieldCoolDown == 0) human.shieldCoolDown = 6;
     }
 

@@ -74,7 +74,7 @@ import static com.craftix.hostile_humans.HumanUtil.*;
 import static com.craftix.hostile_humans.entity.entities.HumanInventoryGenerator.generateInventory;
 import static com.craftix.hostile_humans.entity.entities.ModEntityType.ROAMER;
 
-public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttackMob, PotionRangedAttackMob {
+public class Human extends HumanEntity implements Enemy, RangedAttackMob, CrossbowAttackMob, PotionRangedAttackMob {
 
     public static final ItemStack[] EXTRA_EDIBLE_ITEMS = new ItemStack[]{Items.GOLDEN_APPLE.getDefaultInstance(), PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.REGENERATION), PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.HEALING)};
     public static final ItemStack[] PRE_ATTACK_BUFF_ITEMS = new ItemStack[]{
@@ -228,6 +228,11 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         return super.hurt(damageSource, amount);
     }
 
+    @Override
+    public MobCategory getClassification(boolean forSpawnCount) {
+        return forSpawnCount ? super.getClassification(true) : MobCategory.MONSTER;
+    }
+
     public UUID getPersistentAngerTarget() {
         return this.persistentAngerTarget;
     }
@@ -270,7 +275,7 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
             if (this.getTier() == HumanTier.ROAMER) {
                 return target instanceof Animal && !(target instanceof Bee) && String.valueOf(target.getId()).hashCode() % 100 < 30; //only attack 30% of animals
             }
-            return target instanceof Enemy && (!(target instanceof Creeper) || HumanUtil.shouldFightCreeper(this));
+            return target instanceof Enemy && !(target instanceof Human) && (!(target instanceof Creeper) || HumanUtil.shouldFightCreeper(this));
         }));
         targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Player.class, 10, false, true, (target) -> {
             if (!(target instanceof Player playerTarget)) return false;
@@ -1124,19 +1129,16 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         }
 
         if (!this.level().isClientSide) {
-            BlockPos cobwebPos = this.level().getBlockState(this.blockPosition()).is(Blocks.COBWEB)
-                    ? this.blockPosition()
-                    : (this.level().getBlockState(BlockPos.containing(this.getEyePosition())).is(Blocks.COBWEB)
-                    ? BlockPos.containing(this.getEyePosition()) : null);
+            BlockPos cobwebPos = this.findTouchingCobweb();
             if (cobwebPos != null) {
                 this.cobwebStuckTicks++;
-                if (this.cobwebStuckTicks > 8) {
+                if (this.cobwebStuckTicks > this.getCobwebBreakTicks(cobwebPos)) {
                     this.cobwebStuckTicks = 0;
                     this.level().destroyBlock(cobwebPos, true, this);
                     this.swing(InteractionHand.MAIN_HAND);
                 }
-            } else {
-                this.cobwebStuckTicks = 0;
+            } else if (this.cobwebStuckTicks > 0) {
+                this.cobwebStuckTicks--;
             }
         }
 
@@ -1150,6 +1152,23 @@ public class Human extends HumanEntity implements RangedAttackMob, CrossbowAttac
         if (this.meleeFlurryDamageTicks > 0) --this.meleeFlurryDamageTicks;
 
         this.updateSwingTime();
+    }
+
+    @Nullable
+    private BlockPos findTouchingCobweb() {
+        return BlockPos.betweenClosedStream(this.getBoundingBox().inflate(0.15D, 0.05D, 0.15D))
+                .filter(pos -> this.level().getBlockState(pos).is(Blocks.COBWEB))
+                .map(BlockPos::immutable)
+                .min(java.util.Comparator.comparingDouble(pos -> pos.distToCenterSqr(this.position())))
+                .orElse(null);
+    }
+
+    private int getCobwebBreakTicks(BlockPos pos) {
+        BlockState state = this.level().getBlockState(pos);
+        ItemStack tool = this.getMainHandItem();
+        int toolPenalty = tool.isCorrectToolForDrops(state) ? 30 : 100;
+        int ticks = Mth.ceil(state.getDestroySpeed(this.level(), pos) * toolPenalty / tool.getDestroySpeed(state));
+        return Mth.clamp(ticks, 5, 40);
     }
 
     @Override

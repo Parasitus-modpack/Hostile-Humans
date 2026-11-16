@@ -25,8 +25,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import java.util.UUID;
 
 public class HumanEntityWalkControl extends MoveControl {
-    private static final AttributeModifier CHASE_BOOST_FAR = new AttributeModifier(UUID.fromString("7e0b9c42-51f6-4c9a-9d3e-8a1b2c3d4e5f"), "Human chase speed boost far", 0.28D, AttributeModifier.Operation.ADDITION);
-    private static final AttributeModifier CHASE_BOOST_MID = new AttributeModifier(UUID.fromString("8f1cad53-62a7-4d0b-ae4f-9b2c3d4e5f60"), "Human chase speed boost mid", 0.14D, AttributeModifier.Operation.ADDITION);
+    private static final AttributeModifier CHASE_BOOST_FAR = new AttributeModifier(UUID.randomUUID(), "Human chase speed boost far", 0.03D, AttributeModifier.Operation.ADDITION);
+    private static final AttributeModifier CHASE_BOOST_MID = new AttributeModifier(UUID.randomUUID(), "Human chase speed boost mid", 0.015D, AttributeModifier.Operation.ADDITION);
 
     private final Human human;
     private PrimedTnt nearbyTnt;
@@ -246,7 +246,8 @@ public class HumanEntityWalkControl extends MoveControl {
             }
         } else {
             if (this.mob.onGround() && !this.human.isFleeing && this.human.healingAfterFleeTicks <= 0
-                    && this.human.getNavigation().isDone()) {
+                    && this.human.getNavigation().isDone()
+                    && !this.human.isHolding(HumanUtil::isRangedWeapon)) {
                 LivingEntity idleChase = this.human.getTarget();
                 if (idleChase != null && idleChase.distanceTo(this.human) > 3.0F) {
                     this.requestMoveTo(idleChase.getX(), idleChase.getY(), idleChase.getZ(), 1.0D);

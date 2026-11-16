@@ -12,12 +12,17 @@ import javax.annotation.Nullable;
 import java.util.EnumSet;
 
 public class FindWaterOnFireGoal extends Goal {
+    private static final int SEARCH_RADIUS = 24;
+    private static final int SEARCH_HEIGHT = 8;
+    private static final int SEARCH_INTERVAL_TICKS = 10;
+
     protected final PathfinderMob mob;
     private final double speedModifier;
     private final Level level;
     private double wantedX;
     private double wantedY;
     private double wantedZ;
+    private int nextSearchTick;
 
     public FindWaterOnFireGoal(PathfinderMob p_25221_, double p_25222_) {
         this.mob = p_25221_;
@@ -62,14 +67,14 @@ public class FindWaterOnFireGoal extends Goal {
     @Nullable
     protected Vec3 getHidePos() {
 
-        BlockPos blockpos = this.mob.blockPosition();
-
-        int radius = 10;
-        for (BlockPos blockpos1 : BlockPos.betweenClosed(blockpos.getX() - radius, blockpos.getY() - radius / 3, blockpos.getZ() - radius, blockpos.getX() + radius, blockpos.getY() + radius / 3, blockpos.getZ() + radius)) {
-            if (level.getBlockState(blockpos1).getBlock() == Blocks.WATER) {
-                return Vec3.atBottomCenterOf(blockpos1);
-            }
+        if (this.mob.tickCount < this.nextSearchTick) {
+            return null;
         }
-        return null;
+        this.nextSearchTick = this.mob.tickCount + SEARCH_INTERVAL_TICKS;
+
+        return BlockPos.findClosestMatch(this.mob.blockPosition(), SEARCH_RADIUS, SEARCH_HEIGHT,
+                        pos -> level.getBlockState(pos).getBlock() == Blocks.WATER)
+                .map(Vec3::atBottomCenterOf)
+                .orElse(null);
     }
 }
